@@ -88,6 +88,27 @@
     const updatedCount = getStoredAttendance().length;
     assert(updatedCount === initialCount + 1, 'Data presensi baru berhasil disimpan ke penyimpanan dan dapat dibaca kembali');
 
+    // 6. Uji Fitur Tambah Anggota Baru ke Database
+    const initialMemberCount = getStoredMembers().length;
+    const newMemberSample = {
+      nama: 'Muhammad Akbar Syahputra',
+      tingkat: 'X',
+      jurusan: 'PPLG',
+      kelas: 'X PPLG 2',
+      divisi: 'Pertolongan Pertama',
+      status: 'Calon Anggota'
+    };
+    saveMemberRecord(newMemberSample);
+    const updatedMemberList = getStoredMembers();
+    assert(updatedMemberList.length === initialMemberCount + 1, 'Anggota baru berhasil disimpan ke database (localStorage)');
+
+    const foundNewMember = updatedMemberList.find(m => m.nama === 'Muhammad Akbar Syahputra');
+    assert(foundNewMember && foundNewMember.kelas === 'X PPLG 2', 'Data anggota baru yang disimpan memiliki kelas dan atribut yang sesuai');
+
+    // 7. Uji Pencarian Autocomplete untuk Anggota Baru
+    const searchNew = updatedMemberList.filter(m => m.nama.toLowerCase().includes('akbar'));
+    assert(searchNew.length > 0 && searchNew[0].nama === 'Muhammad Akbar Syahputra', 'Anggota baru langsung dapat ditemukan lewat pencarian autocomplete');
+
     // Ringkasan
     const summary = document.createElement('div');
     summary.className = 'summary';

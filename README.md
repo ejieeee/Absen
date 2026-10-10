@@ -75,8 +75,9 @@ Sesuai struktur akademik sekolah, sistem ini memetakan 16 rombongan belajar (8 r
   * Menampilkan log kehadiran real-time.
   * Filter gabungan: Pencarian nama, rentang tanggal, tingkat kelas (X / XI), jurusan, rombel spesifik, divisi PMR, dan jenis kegiatan.
   * Modal detail presensi yang menampilkan data lengkap beserta pratinjau tanda tangan digital anggota.
-* **Data Anggota:**
+* **Data Anggota & Tambah Anggota Baru:**
   * Direktori seluruh anggota aktif dan pengurus yang terdistribusi di 16 rombel sekolah.
+  * **Fitur Tambah Anggota:** Admin/Sekretaris dapat menambahkan anggota baru melalui modal khusus. Form secara cerdas menyesuaikan pilihan rombel sesuai tingkat kelas dan jurusan yang dipilih. Data langsung disimpan secara persisten ke database (localStorage), langsung muncul di tabel anggota dan rekap, serta dapat dicari secara instan di portal absensi anggota.
 * **Rekap Kehadiran:**
   * Ringkasan agregat frekuensi kehadiran per anggota (Latihan, Piket, Tugas Lain, Total, Status Keaktifan).
   * Bebas dari visualisasi grafik yang tidak diperlukan.
@@ -115,6 +116,7 @@ Aplikasi ini dibangun menggunakan standar web murni (HTML5, CSS modern, Vanilla 
    * `#secretary`: Membuka halaman login sekretaris
    * `#admin-absensi`: Membuka langsung tabel log presensi
    * `#admin-anggota`: Membuka langsung daftar data anggota
+   * `#admin-tambah-anggota`: Membuka modal tambah anggota baru
    * `#admin-rekap`: Membuka langsung tabel rekapitulasi kehadiran
    * `?search=E`: Simulasi pencarian autocomplete huruf "E"
    * `?member=M-05`: Simulasi pengisian otomatis anggota Ezio Zai'im (X PPLG 1)

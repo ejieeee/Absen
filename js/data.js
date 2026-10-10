@@ -275,6 +275,37 @@ const DUMMY_ATTENDANCE = [
 
 // In-memory / LocalStorage Store
 const STORAGE_KEY_ATTENDANCE = 'pmr_smkn7_attendance_records_v1';
+const STORAGE_KEY_MEMBERS = 'pmr_smkn7_members_v1';
+
+function getStoredMembers() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_MEMBERS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('LocalStorage not available, fallback to dummy members', e);
+  }
+  return [...DUMMY_MEMBERS];
+}
+
+function saveMemberRecord(member) {
+  const current = getStoredMembers();
+  if (!member.id) {
+    const nextNum = current.length + 1;
+    member.id = `M-${String(nextNum).padStart(2, '0')}`;
+  }
+  const updated = [member, ...current];
+  try {
+    localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(updated));
+  } catch (e) {
+    console.warn('LocalStorage member save failed', e);
+  }
+  return updated;
+}
 
 function getStoredAttendance() {
   try {

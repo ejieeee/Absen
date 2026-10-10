@@ -133,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    state.filteredAutocompleteList = DUMMY_MEMBERS.filter(m => {
+    const allMembers = getStoredMembers();
+    state.filteredAutocompleteList = allMembers.filter(m => {
       return m.nama.toLowerCase().includes(cleanQuery) ||
              m.kelas.toLowerCase().includes(cleanQuery) ||
              m.jurusan.toLowerCase().includes(cleanQuery);
@@ -875,7 +876,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const rombel = filterAnggotaRombel.value;
     const divisi = filterAnggotaDivisi.value;
 
-    return DUMMY_MEMBERS.filter(m => {
+    const allMembers = getStoredMembers();
+    return allMembers.filter(m => {
       if (q && !m.nama.toLowerCase().includes(q)) return false;
       if (tingkat !== 'all' && m.tingkat !== tingkat) return false;
       if (jurusan !== 'all' && m.jurusan !== jurusan) return false;
@@ -890,9 +892,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const countEl = document.getElementById('anggotaCountText');
     if (!tbody) return;
 
+    const allMembers = getStoredMembers();
     const filtered = getFilteredMembers();
     tbody.innerHTML = '';
-    countEl.textContent = `Menampilkan ${filtered.length} dari ${DUMMY_MEMBERS.length} anggota resmi`;
+    countEl.textContent = `Menampilkan ${filtered.length} dari ${allMembers.length} anggota resmi`;
 
     if (filtered.length === 0) {
       tbody.innerHTML = `
@@ -947,8 +950,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const jurusan = filterRekapJurusan.value;
     const divisi = filterRekapDivisi.value;
 
+    const allMembers = getStoredMembers();
     // Filter anggota sesuai kriteria
-    const members = DUMMY_MEMBERS.filter(m => {
+    const members = allMembers.filter(m => {
       if (tingkat !== 'all' && m.tingkat !== tingkat) return false;
       if (jurusan !== 'all' && m.jurusan !== jurusan) return false;
       if (divisi !== 'all' && m.divisi !== divisi) return false;
@@ -1095,11 +1099,151 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // =========================================================================
+  // MODAL 3: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
+  // =========================================================================
+  const openAddMemberModalBtn = document.getElementById('openAddMemberModalBtn');
+  const addMemberModal = document.getElementById('addMemberModal');
+  const addMemberModalCloseBtn = document.getElementById('addMemberModalCloseBtn');
+  const addMemberModalCancelBtn = document.getElementById('addMemberModalCancelBtn');
+  const addMemberForm = document.getElementById('addMemberForm');
+  const newMemberNama = document.getElementById('newMemberNama');
+  const newMemberNamaError = document.getElementById('newMemberNamaError');
+  const newMemberTingkat = document.getElementById('newMemberTingkat');
+  const newMemberJurusan = document.getElementById('newMemberJurusan');
+  const newMemberRombel = document.getElementById('newMemberRombel');
+  const newMemberDivisi = document.getElementById('newMemberDivisi');
+  const newMemberStatus = document.getElementById('newMemberStatus');
+  const addMemberSuccessToast = document.getElementById('addMemberSuccessToast');
+  const addMemberSuccessToastText = document.getElementById('addMemberSuccessToastText');
+
+  function updateNewMemberRombelOptions() {
+    if (!newMemberRombel || !newMemberTingkat || !newMemberJurusan) return;
+    const selectedTingkat = newMemberTingkat.value;
+    const selectedJurusan = newMemberJurusan.value;
+
+    const matchingRombels = ROMBEL_LIST.filter(r => r.tingkat === selectedTingkat && r.jurusan === selectedJurusan);
+    newMemberRombel.innerHTML = '';
+    matchingRombels.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.label;
+      newMemberRombel.appendChild(opt);
+    });
+  }
+
+  function openAddMemberModal() {
+    if (!addMemberModal) return;
+    newMemberNama.value = '';
+    newMemberNamaError.style.display = 'none';
+
+    if (newMemberDivisi) {
+      newMemberDivisi.innerHTML = '';
+      DIVISI_LIST.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        newMemberDivisi.appendChild(opt);
+      });
+    }
+
+    newMemberTingkat.value = 'X';
+    newMemberJurusan.value = 'PPLG';
+    updateNewMemberRombelOptions();
+
+    addMemberModal.classList.add('show');
+    setTimeout(() => newMemberNama.focus(), 100);
+  }
+
+  function closeAddMemberModal() {
+    if (addMemberModal) {
+      addMemberModal.classList.remove('show');
+    }
+  }
+
+  if (openAddMemberModalBtn) {
+    openAddMemberModalBtn.addEventListener('click', openAddMemberModal);
+  }
+
+  if (addMemberModalCloseBtn) {
+    addMemberModalCloseBtn.addEventListener('click', closeAddMemberModal);
+  }
+
+  if (addMemberModalCancelBtn) {
+    addMemberModalCancelBtn.addEventListener('click', closeAddMemberModal);
+  }
+
+  if (newMemberTingkat) {
+    newMemberTingkat.addEventListener('change', updateNewMemberRombelOptions);
+  }
+
+  if (newMemberJurusan) {
+    newMemberJurusan.addEventListener('change', updateNewMemberRombelOptions);
+  }
+
+  if (newMemberNama) {
+    newMemberNama.addEventListener('input', () => {
+      if (newMemberNama.value.trim()) {
+        newMemberNamaError.style.display = 'none';
+      }
+    });
+  }
+
+  if (addMemberForm) {
+    addMemberForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const namaVal = newMemberNama.value.trim();
+      if (!namaVal) {
+        newMemberNamaError.style.display = 'block';
+        newMemberNama.focus();
+        return;
+      }
+
+      const tingkatVal = newMemberTingkat.value;
+      const jurusanVal = newMemberJurusan.value;
+      const rombelVal = newMemberRombel.value;
+      const divisiVal = newMemberDivisi.value;
+      const statusVal = newMemberStatus.value;
+
+      const newMember = {
+        nama: namaVal,
+        tingkat: tingkatVal,
+        jurusan: jurusanVal,
+        kelas: rombelVal,
+        divisi: divisiVal,
+        status: statusVal
+      };
+
+      // Simpan langsung ke database/localStorage
+      saveMemberRecord(newMember);
+
+      closeAddMemberModal();
+
+      // Refresh tabel anggota & rekap
+      renderAnggotaTable();
+      renderRekapTable();
+
+      // Tampilkan toast notifikasi berhasil
+      if (addMemberSuccessToast && addMemberSuccessToastText) {
+        const jurObj = JURUSAN_LIST.find(j => j.id === jurusanVal);
+        const jurLabel = jurObj ? jurObj.nama : jurusanVal;
+        addMemberSuccessToastText.textContent = `Anggota "${namaVal}" (${rombelVal} • ${jurLabel}) berhasil disimpan ke database.`;
+        addMemberSuccessToast.style.display = 'block';
+
+        setTimeout(() => {
+          addMemberSuccessToast.style.display = 'none';
+        }, 5000);
+      }
+    });
+  }
+
   // Tutup Modal dengan tombol ESC
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeConfirmModal();
       closeDetailModal();
+      closeAddMemberModal();
     }
   });
 
@@ -1111,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const memberIdParam = searchParams.get('member');
 
     if (memberIdParam) {
-      const found = DUMMY_MEMBERS.find(m => m.id === memberIdParam);
+      const found = getStoredMembers().find(m => m.id === memberIdParam);
       if (found) selectMember(found);
     } else if (searchQuery && searchInput) {
       searchInput.value = searchQuery;
@@ -1134,6 +1278,14 @@ document.addEventListener('DOMContentLoaded', () => {
       populateAdminFilterDropdowns();
       subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'anggota'));
       renderActiveSecretaryView();
+    } else if (hash === '#admin-tambah-anggota') {
+      state.isSecretaryLoggedIn = true;
+      state.activeSubView = 'anggota';
+      switchMainTab('secretary');
+      populateAdminFilterDropdowns();
+      subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'anggota'));
+      renderActiveSecretaryView();
+      openAddMemberModal();
     } else if (hash === '#admin-rekap') {
       state.isSecretaryLoggedIn = true;
       state.activeSubView = 'rekap';
