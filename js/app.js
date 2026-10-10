@@ -44,7 +44,6 @@ async function fetchAttendanceOnline() {
     let data = await res.json();
     if (data.status === 'success') {
       dbAbsensiCache = data.data.map(a => {
-        // Pisahkan waktu presensi MySQL (YYYY-MM-DD HH:MM:SS)
         let dateTimeParts = a.waktu_presensi ? a.waktu_presensi.split(' ') : ['', ''];
         let tgl = dateTimeParts[0];
         let jamWaktu = dateTimeParts[1] ? dateTimeParts[1].substring(0, 5) + ' WITA' : '';
@@ -68,52 +67,6 @@ async function fetchAttendanceOnline() {
   }
 }
 
-async function insertMemberOnline(newMember) {
-  try {
-    let res = await fetch('api.php?action=add_anggota', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nama: newMember.nama,
-        tingkat: newMember.tingkat,
-        jurusan: newMember.jurusan,
-        rombel: newMember.kelas,
-        divisi: newMember.divisi,
-        status_keanggotaan: newMember.status
-      })
-    });
-    let data = await res.json();
-    if (data.status === 'success') {
-      await fetchMembersOnline();
-    } else {
-      alert("Gagal menyimpan anggota: " + data.message);
-    }
-  } catch (err) {
-    console.error("Error:", err);
-  }
-}
-
-async function insertAttendanceOnline(record) {
-  try {
-    let res = await fetch('api.php?action=add_absensi', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        member_id: parseInt(record.memberId, 10),
-        signature_data: record.tandaTangan
-      })
-    });
-    let data = await res.json();
-    if (data.status === 'success') {
-      await fetchAttendanceOnline();
-    } else {
-      alert("Gagal mencatat absensi: " + data.message);
-    }
-  } catch (err) {
-    console.error("Error:", err);
-  }
-}
-
 function getStoredMembers() {
   return dbAnggotaCache;
 }
@@ -131,12 +84,8 @@ function getDatabaseStatusLabel() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // =========================================================================
-  // STATE MANAGEMENT
-  // =========================================================================
   const state = {
     selectedMember: null,
-    selectedActivity: 'Latihan Rutin',
     signaturePad: null,
     isSecretaryLoggedIn: false,
     activeSubView: 'absensi',
@@ -144,9 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredAutocompleteList: []
   };
 
-  // =========================================================================
-  // INISIALISASI CANVAS TANDA TANGAN
-  // =========================================================================
+  // Inisialisasi Canvas Tanda Tangan
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
@@ -159,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Tombol Hapus Tanda Tangan
   const clearSigBtn = document.getElementById('clearSignatureBtn');
   if (clearSigBtn && state.signaturePad) {
     clearSigBtn.addEventListener('click', () => {
@@ -167,9 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // =========================================================================
-  // WAKTU LIVE & SIMULASI WAKTU OTOMATIS (WITA)
-  // =========================================================================
+  // Waktu Live (WITA)
   function updateLiveClock() {
     const clockEl = document.getElementById('liveDateTimeText');
     if (!clockEl) return;
@@ -193,11 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
     clockEl.textContent = `${hari}, ${tgl} ${bln} ${thn} • ${jam}:${menit}:${detik} WITA`;
   }
   updateLiveClock();
-  setInterval(updateLiveClock, 1000);  
+  setInterval(updateLiveClock, 1000);
 
-  // =========================================================================
-  // PENCARIAN & AUTOCOMPLETE NAMA ANGGOTA
-  // =========================================================================
+  // Pencarian & Autocomplete Nama Anggota
   const searchInput = document.getElementById('memberSearchInput');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const dropdown = document.getElementById('autocompleteDropdown');
@@ -284,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.value = member.nama;
     dropdown.classList.remove('show');
 
-    // Tampilkan informasi read-only
     document.getElementById('selectedMemberName').textContent = member.nama;
     document.getElementById('selectedMemberClass').textContent = member.kelas;
     
@@ -318,137 +259,33 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAutocomplete(searchInput.value);
       }
     });
-
-    // Keyboard navigation (Arrow Up, Down, Enter, Esc)
-    searchInput.addEventListener('keydown', (e) => {
-      const items = dropdown.querySelectorAll('.autocomplete-item');
-      if (!items.length) return;
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        state.highlightedAutocompleteIndex = (state.highlightedAutocompleteIndex + 1) % items.length;
-        updateHighlightedItem(items);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        state.highlightedAutocompleteIndex = (state.highlightedAutocompleteIndex - 1 + items.length) % items.length;
-        updateHighlightedItem(items);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (state.highlightedAutocompleteIndex >= 0 && state.filteredAutocompleteList[state.highlightedAutocompleteIndex]) {
-          selectMember(state.filteredAutocompleteList[state.highlightedAutocompleteIndex]);
-        }
-      } else if (e.key === 'Escape') {
-        dropdown.classList.remove('show');
-      }
-    });
   }
 
-  function updateHighlightedItem(items) {
-    items.forEach((item, idx) => {
-      if (idx === state.highlightedAutocompleteIndex) {
-        item.classList.add('highlighted');
-        item.scrollIntoView({ block: 'nearest' });
-      } else {
-        item.classList.remove('highlighted');
-      }
-    });
-  }
+  if (clearSearchBtn) clearSearchBtn.addEventListener('click', resetMemberSelection);
+  if (changeMemberBtn) changeMemberBtn.addEventListener('click', resetMemberSelection);
 
-  if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', resetMemberSelection);
-  }
-
-  if (changeMemberBtn) {
-    changeMemberBtn.addEventListener('click', resetMemberSelection);
-  }
-
-  // Tutup dropdown jika klik di luar
   document.addEventListener('click', (e) => {
-    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+    if (searchInput && dropdown && !searchInput.contains(e.target) && !dropdown.contains(e.target)) {
       dropdown.classList.remove('show');
     }
   });
 
-  // =========================================================================
-  // MODAL LOGIKA: KONFIRMASI RINGKASAN SEBELUM KIRIM
-  // =========================================================================
-  const confirmModal = document.getElementById('confirmModal');
-  const confirmModalCloseBtn = document.getElementById('confirmModalCloseBtn');
-  const confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
-  const confirmModalProceedBtn = document.getElementById('confirmModalProceedBtn');
-  const confirmModalContent = document.getElementById('confirmModalContent');
-  const confirmModalSignatureImg = document.getElementById('confirmModalSignatureImg');
-
-  function openConfirmModal() {
-    if (!state.selectedMember) return;
-
-    const now = new Date();
-    const dateFormatted = formatTanggalIndo(now.toISOString().split('T')[0]);
-    const jam = String(now.getHours()).padStart(2, '0');
-    const menit = String(now.getMinutes()).padStart(2, '0');
-    const timeFormatted = `${jam}:${menit} WITA`;
-
-    const jurObj = JURUSAN_LIST.find(j => j.id === state.selectedMember.jurusan);
-    const jurNama = jurObj ? jurObj.nama : state.selectedMember.jurusan;
-
-    confirmModalContent.innerHTML = `
-      <div class="summary-row">
-        <span class="summary-label">Nama Anggota</span>
-        <span class="summary-val">${state.selectedMember.nama}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Kelas & Rombel</span>
-        <span class="summary-val">${state.selectedMember.kelas}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Jurusan</span>
-        <span class="summary-val">${jurNama}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Divisi PMR</span>
-        <span class="summary-val">${state.selectedMember.divisi}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Jenis Kegiatan</span>
-        <span class="summary-val">${state.selectedActivity}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-label">Waktu Presensi</span>
-        <span class="summary-val">${dateFormatted} • ${timeFormatted}</span>
-      </div>
-    `;
-
-    confirmModalSignatureImg.src = state.signaturePad.toDataURL();
-    confirmModal.classList.add('show');
-  }
-
-  function closeConfirmModal() {
-    confirmModal.classList.remove('show');
-  }
-
-  if (confirmModalCloseBtn) confirmModalCloseBtn.addEventListener('click', closeConfirmModal);
-  if (confirmModalCancelBtn) confirmModalCancelBtn.addEventListener('click', closeConfirmModal);
-
-  // =========================================================================
-  // SUBMIT FORMULIR ABSENSI
-  // =========================================================================
+  // Submit Formulir Absensi
   const attendanceForm = document.getElementById('attendanceForm');
   const successCard = document.getElementById('successCard');
   const resetFormBtn = document.getElementById('resetFormBtn');
   const signatureError = document.getElementById('signatureError');
 
   if (attendanceForm) {
-    attendanceForm.addEventListener('submit', (e) => {
+    attendanceForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validasi 1: Anggota harus dipilih
       if (!state.selectedMember) {
         searchInput.focus();
         alert('Silakan cari dan pilih nama anggota terlebih dahulu.');
         return;
       }
 
-      // Validasi 2: Tanda tangan tidak boleh kosong
       if (state.signaturePad.isEmpty()) {
         signatureError.style.display = 'block';
         canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -457,88 +294,73 @@ document.addEventListener('DOMContentLoaded', () => {
         signatureError.style.display = 'none';
       }
 
-      // Tampilkan ringkasan sebelum pengiriman
-      openConfirmModal();
+      const submitBtn = document.getElementById('submitAttendanceBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Mengirim...';
+      }
+
+      try {
+        let res = await fetch('api.php?action=add_absensi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            member_id: parseInt(state.selectedMember.id, 10),
+            signature_data: state.signaturePad.toDataURL()
+          })
+        });
+
+        let data = await res.json();
+        if (data.status === 'success') {
+          await fetchAttendanceOnline();
+          renderAbsensiTable();
+          renderRekapTable();
+
+          attendanceForm.style.display = 'none';
+          const now = new Date();
+          const dateStr = now.toISOString().split('T')[0];
+          const jam = String(now.getHours()).padStart(2, '0');
+          const menit = String(now.getMinutes()).padStart(2, '0');
+          const timeFormatted = `${jam}:${menit} WITA`;
+
+          const jurObj = JURUSAN_LIST.find(j => j.id === state.selectedMember.jurusan);
+          const jurNama = jurObj ? jurObj.nama : state.selectedMember.jurusan;
+
+          document.getElementById('successSummaryBox').innerHTML = `
+            <div class="summary-row">
+              <span class="summary-label">Nama Anggota</span>
+              <span class="summary-val">${state.selectedMember.nama}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Kelas & Rombel</span>
+              <span class="summary-val">${state.selectedMember.kelas} (${jurNama})</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Divisi</span>
+              <span class="summary-val">${state.selectedMember.divisi}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Waktu Tercatat</span>
+              <span class="summary-val">${formatTanggalIndo(dateStr)} • ${timeFormatted}</span>
+            </div>
+          `;
+
+          successCard.classList.add('visible');
+        } else {
+          alert("Gagal: " + data.message);
+        }
+      } catch (err) {
+        console.error("Kesalahan jaringan:", err);
+        alert("Gagal terhubung ke server api.php.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Kirim Absensi';
+        }
+      }
     });
   }
 
-  // Tombol Kirim Sekarang di Modal Konfirmasi
-  if (confirmModalProceedBtn) {
-    confirmModalProceedBtn.addEventListener('click', () => {
-      closeConfirmModal();
-
-      const now = new Date();
-      const jam = String(now.getHours()).padStart(2, '0');
-      const menit = String(now.getMinutes()).padStart(2, '0');
-      const timeFormatted = `${jam}:${menit} WITA`;
-      const dateStr = now.toISOString().split('T')[0];
-      const randomSuffix = Math.floor(100 + Math.random() * 900);
-      const recordId = `PMR-${dateStr.replace(/-/g, '')}-${randomSuffix}`;
-
-      // Buat record presensi baru
-      const newRecord = {
-        id: recordId,
-        memberId: state.selectedMember.id,
-        nama: state.selectedMember.nama,
-        kelas: state.selectedMember.kelas,
-        tingkat: state.selectedMember.tingkat,
-        jurusan: state.selectedMember.jurusan,
-        divisi: state.selectedMember.divisi,
-        jenisKegiatan: state.selectedActivity,
-        tanggal: dateStr,
-        waktu: timeFormatted,
-        timestamp: now.toISOString(),
-        tandaTangan: state.signaturePad.toDataURL()
-      };
-
-      // Simpan ke MySQL (dengan cadangan lokal)
-      insertAttendanceOnline(newRecord).then(() => {
-        renderAbsensiTable();
-        renderRekapTable();
-      });
-
-      // Tampilkan State Sukses
-      attendanceForm.style.display = 'none';
-
-      const jurObj = JURUSAN_LIST.find(j => j.id === state.selectedMember.jurusan);
-      const jurNama = jurObj ? jurObj.nama : state.selectedMember.jurusan;
-
-      document.getElementById('successSummaryBox').innerHTML = `
-        <div class="summary-row">
-          <span class="summary-label">Kode Referensi</span>
-          <span class="summary-val" style="font-family: var(--font-mono); font-size: 0.82rem;">${recordId}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Nama Anggota</span>
-          <span class="summary-val">${state.selectedMember.nama}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Kelas & Rombel</span>
-          <span class="summary-val">${state.selectedMember.kelas} (${jurNama})</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Divisi</span>
-          <span class="summary-val">${state.selectedMember.divisi}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Kegiatan</span>
-          <span class="summary-val">${state.selectedActivity}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Waktu Tercatat</span>
-          <span class="summary-val">${formatTanggalIndo(dateStr)} • ${timeFormatted}</span>
-        </div>
-      `;
-
-      successCard.classList.add('visible');
-
-      // Segarkan tabel admin jika sedang dibuka di latar
-      renderAbsensiTable();
-      renderRekapTable();
-    });
-  }
-
-  // Tombol Catat Absensi Lain (Reset Formulir)
   if (resetFormBtn) {
     resetFormBtn.addEventListener('click', () => {
       successCard.classList.remove('visible');
@@ -549,9 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // =========================================================================
-  // SWITCHER TAB UTAMA (FORMULIR ANGGOTA VS PORTAL SEKRETARIS)
-  // =========================================================================
+  // Switcher Tab Utama (Formulir Anggota vs Portal Sekretaris)
   const tabBtnMember = document.getElementById('tabBtnMember');
   const tabBtnSecretary = document.getElementById('tabBtnSecretary');
   const viewMember = document.getElementById('viewMember');
@@ -568,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
       viewMember.style.display = 'block';
       viewSecretary.style.display = 'none';
 
-      // Pastikan canvas tetap terkalibrasi jika kembali ke formulir
       if (state.signaturePad) {
         state.signaturePad.resizeCanvas();
       }
@@ -581,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
       viewMember.style.display = 'none';
       viewSecretary.style.display = 'block';
 
-      // Cek status login
       if (state.isSecretaryLoggedIn) {
         document.getElementById('secretaryLoginView').style.display = 'none';
         document.getElementById('secretaryMainView').style.display = 'block';
@@ -600,9 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     switchMainTab('member');
   });
 
-  // =========================================================================
-  // PORTAL SEKRETARIS: LOGIN & LOGOUT
-  // =========================================================================
+  // Login & Logout Sekretaris
   const secretaryLoginForm = document.getElementById('secretaryLoginForm');
   const secUsernameInput = document.getElementById('secUsername');
   const secPasswordInput = document.getElementById('secPassword');
@@ -610,21 +426,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const secLogoutBtn = document.getElementById('secLogoutBtn');
 
   if (secretaryLoginForm) {
-    secretaryLoginForm.addEventListener('submit', (e) => {
+    secretaryLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const u = secUsernameInput.value.trim();
       const p = secPasswordInput.value.trim();
 
-      // Kredensial simulasi sederhana
-      if (u === 'sekretaris' && p === 'pmr123') {
-        state.isSecretaryLoggedIn = true;
-        loginErrorMsg.style.display = 'none';
-        document.getElementById('secretaryLoginView').style.display = 'none';
-        document.getElementById('secretaryMainView').style.display = 'block';
-        populateAdminFilterDropdowns();
-        renderActiveSecretaryView();
-      } else {
+      try {
+        let res = await fetch('api.php?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        let data = await res.json();
+        if (data.status === 'success') {
+          state.isSecretaryLoggedIn = true;
+          loginErrorMsg.style.display = 'none';
+          document.getElementById('secretaryLoginView').style.display = 'none';
+          document.getElementById('secretaryMainView').style.display = 'block';
+          populateAdminFilterDropdowns();
+          renderActiveSecretaryView();
+        } else {
+          loginErrorMsg.style.display = 'block';
+          loginErrorMsg.textContent = data.message;
+        }
+      } catch (err) {
+        console.error("Login error:", err);
         loginErrorMsg.style.display = 'block';
+        loginErrorMsg.textContent = 'Gagal terhubung ke server.';
       }
     });
   }
@@ -638,11 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // =========================================================================
-  // POPULASI FILTER DROPDOWNS SEKRETARIS
-  // =========================================================================
+  // Populasi Filter Dropdowns Sekretaris
   function populateAdminFilterDropdowns() {
-    // 1. Rombel filter (Semua 16 Rombel)
     const rombelSelects = [
       document.getElementById('filterAbsensiRombel'),
       document.getElementById('filterAnggotaRombel')
@@ -659,7 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // 2. Divisi filter
     const divisiSelects = [
       document.getElementById('filterAbsensiDivisi'),
       document.getElementById('filterAnggotaDivisi'),
@@ -676,23 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sel.appendChild(opt);
       });
     });
-
-    // 3. Kegiatan filter
-    const kegiatanSel = document.getElementById('filterAbsensiKegiatan');
-    if (kegiatanSel) {
-      kegiatanSel.innerHTML = '<option value="all">Semua Kegiatan</option>';
-      JENIS_KEGIATAN_LIST.forEach(k => {
-        const opt = document.createElement('option');
-        opt.value = k.id;
-        opt.textContent = k.label;
-        kegiatanSel.appendChild(opt);
-      });
-    }
   }
 
-  // =========================================================================
-  // SUB-NAV SEKRETARIS (ABSENSI / ANGGOTA / REKAP)
-  // =========================================================================
+  // Sub-nav Sekretaris
   const subnavLinks = document.querySelectorAll('.subnav-link');
   subnavLinks.forEach(link => {
     link.addEventListener('click', () => {
@@ -712,500 +522,127 @@ document.addEventListener('DOMContentLoaded', () => {
     const subEl = document.getElementById('secretarySectionSubtitle');
     const exportBtn = document.getElementById('exportCsvBtn');
 
-    subviewAbsensi.style.display = 'none';
-    subviewAnggota.style.display = 'none';
-    subviewRekap.style.display = 'none';
+    if (subviewAbsensi) subviewAbsensi.style.display = 'none';
+    if (subviewAnggota) subviewAnggota.style.display = 'none';
+    if (subviewRekap) subviewRekap.style.display = 'none';
 
     if (state.activeSubView === 'absensi') {
-      subviewAbsensi.style.display = 'block';
-      titleEl.textContent = 'Absensi Anggota';
-      subEl.textContent = 'Daftar catatan kehadiran latihan rutin, piket UKS, dan tugas PMR';
-      exportBtn.style.display = 'inline-flex';
-      exportBtn.textContent = 'Ekspor Absensi (CSV)';
+      if (subviewAbsensi) subviewAbsensi.style.display = 'block';
+      if (titleEl) titleEl.textContent = 'Absensi Anggota';
+      if (subEl) subEl.textContent = 'Daftar catatan kehadiran latihan rutin dan kegiatan PMR';
+      if (exportBtn) {
+        exportBtn.style.display = 'inline-flex';
+        exportBtn.textContent = 'Ekspor Absensi (CSV)';
+      }
       renderAbsensiTable();
     } else if (state.activeSubView === 'anggota') {
-      subviewAnggota.style.display = 'block';
-      titleEl.textContent = 'Data Anggota PMR';
-      subEl.textContent = 'Struktur anggota resmi PMR Wira SMK Negeri 7 Samarinda (16 Rombel)';
-      exportBtn.style.display = 'inline-flex';
-      exportBtn.textContent = 'Ekspor Anggota (CSV)';
+      if (subviewAnggota) subviewAnggota.style.display = 'block';
+      if (titleEl) titleEl.textContent = 'Data Anggota PMR';
+      if (subEl) subEl.textContent = 'Struktur anggota resmi PMR Wira SMK Negeri 7 Samarinda';
+      if (exportBtn) {
+        exportBtn.style.display = 'inline-flex';
+        exportBtn.textContent = 'Ekspor Anggota (CSV)';
+      }
       renderAnggotaTable();
     } else if (state.activeSubView === 'rekap') {
-      subviewRekap.style.display = 'block';
-      titleEl.textContent = 'Rekap Kehadiran';
-      subEl.textContent = 'Rekapitulasi total keikutsertaan kegiatan per anggota';
-      exportBtn.style.display = 'none';
+      if (subviewRekap) subviewRekap.style.display = 'block';
+      if (titleEl) titleEl.textContent = 'Rekap Kehadiran';
+      if (subEl) subEl.textContent = 'Rekapitulasi total keikutsertaan kegiatan per anggota';
+      if (exportBtn) exportBtn.style.display = 'none';
       renderRekapTable();
     }
   }
 
-  // =========================================================================
-  // TABEL 1: LOG ABSENSI ANGGOTA
-  // =========================================================================
-  const filterAbsensiNama = document.getElementById('filterAbsensiNama');
-  const filterAbsensiTanggal = document.getElementById('filterAbsensiTanggal');
-  const filterAbsensiTingkat = document.getElementById('filterAbsensiTingkat');
-  const filterAbsensiJurusan = document.getElementById('filterAbsensiJurusan');
-  const filterAbsensiRombel = document.getElementById('filterAbsensiRombel');
-  const filterAbsensiDivisi = document.getElementById('filterAbsensiDivisi');
-  const filterAbsensiKegiatan = document.getElementById('filterAbsensiKegiatan');
-  const resetFilterAbsensiBtn = document.getElementById('resetFilterAbsensiBtn');
-
-  [filterAbsensiNama, filterAbsensiTanggal, filterAbsensiTingkat, filterAbsensiJurusan, filterAbsensiRombel, filterAbsensiDivisi, filterAbsensiKegiatan]
-    .forEach(el => {
-      if (el) el.addEventListener('input', renderAbsensiTable);
-    });
-
-  if (resetFilterAbsensiBtn) {
-    resetFilterAbsensiBtn.addEventListener('click', () => {
-      filterAbsensiNama.value = '';
-      filterAbsensiTanggal.value = 'all';
-      filterAbsensiTingkat.value = 'all';
-      filterAbsensiJurusan.value = 'all';
-      filterAbsensiRombel.value = 'all';
-      filterAbsensiDivisi.value = 'all';
-      filterAbsensiKegiatan.value = 'all';
-      renderAbsensiTable();
-    });
-  }
-
-  function getFilteredAttendance() {
-    const list = getStoredAttendance();
-    const qNama = filterAbsensiNama.value.trim().toLowerCase();
-    const tglMode = filterAbsensiTanggal.value;
-    const tingkat = filterAbsensiTingkat.value;
-    const jurusan = filterAbsensiJurusan.value;
-    const rombel = filterAbsensiRombel.value;
-    const divisi = filterAbsensiDivisi.value;
-    const kegiatan = filterAbsensiKegiatan.value;
-
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    return list.filter(item => {
-      if (qNama && !item.nama.toLowerCase().includes(qNama)) return false;
-
-      // Tanggal filter
-      if (tglMode === 'today' && item.tanggal !== todayStr) return false;
-      if (tglMode === '7days') {
-        const itemDate = new Date(item.tanggal);
-        const diffDays = (new Date() - itemDate) / (1000 * 60 * 60 * 24);
-        if (diffDays > 7) return false;
-      }
-      if (tglMode === 'month') {
-        const [y, m] = item.tanggal.split('-');
-        const now = new Date();
-        if (Number(y) !== now.getFullYear() || Number(m) !== (now.getMonth() + 1)) return false;
-      }
-
-      // Filter hirarki kelas
-      if (tingkat !== 'all' && item.tingkat !== tingkat) return false;
-      if (jurusan !== 'all' && item.jurusan !== jurusan) return false;
-      if (rombel !== 'all' && item.kelas !== rombel) return false;
-      if (divisi !== 'all' && item.divisi !== divisi) return false;
-      if (kegiatan !== 'all' && item.jenisKegiatan !== kegiatan) return false;
-
-      return true;
-    });
-  }
-
+  // Render Tabel Absensi
   function renderAbsensiTable() {
     const tbody = document.getElementById('absensiTableBody');
     const countEl = document.getElementById('absensiCountText');
     if (!tbody) return;
 
-    const filtered = getFilteredAttendance();
+    const list = getStoredAttendance();
     tbody.innerHTML = '';
-    countEl.textContent = `Menampilkan ${filtered.length} catatan kehadiran`;
+    if (countEl) countEl.textContent = `Menampilkan ${list.length} catatan kehadiran`;
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="empty-table-state">
-            Tidak ada catatan absensi yang sesuai dengan kriteria filter.
-          </td>
-        </tr>
-      `;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Tidak ada catatan absensi.</td></tr>`;
       return;
     }
 
-    filtered.forEach(item => {
+    list.forEach(item => {
       const tr = document.createElement('tr');
-
-      // Waktu presensi format pendek
-      const tdWaktu = document.createElement('td');
-      tdWaktu.style.whiteSpace = 'nowrap';
-      tdWaktu.innerHTML = `
-        <div style="font-weight: 600; font-size: 0.86rem;">${item.waktu}</div>
-        <div style="font-size: 0.76rem; color: var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div>
+      tr.innerHTML = `
+        <td style="white-space: nowrap;">
+          <div style="font-weight: 600; font-size: 0.86rem;">${item.waktu}</div>
+          <div style="font-size: 0.76rem; color: var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div>
+        </td>
+        <td><strong>${item.nama}</strong></td>
+        <td>${item.kelas}</td>
+        <td>${item.divisi}</td>
+        <td>${item.tandaTangan ? `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">` : '-'}</td>
+        <td style="text-align: right;"><button type="button" class="btn-action-table">Detail</button></td>
       `;
-
-      // Nama
-      const tdNama = document.createElement('td');
-      tdNama.innerHTML = `<span style="font-weight: 600;">${item.nama}</span>`;
-
-      // Kelas & Rombel
-      const tdKelas = document.createElement('td');
-      tdKelas.textContent = item.kelas;
-
-      // Divisi
-      const tdDivisi = document.createElement('td');
-      tdDivisi.textContent = item.divisi;
-
-      // Jenis Kegiatan
-      const tdKegiatan = document.createElement('td');
-      tdKegiatan.textContent = item.jenisKegiatan;
-
-      // Tanda Tangan
-      const tdSig = document.createElement('td');
-      if (item.tandaTangan) {
-        tdSig.innerHTML = `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">`;
-      } else {
-        tdSig.textContent = '-';
-      }
-
-      // Aksi
-      const tdAksi = document.createElement('td');
-      tdAksi.style.textAlign = 'right';
-      const detailBtn = document.createElement('button');
-      detailBtn.type = 'button';
-      detailBtn.className = 'btn-action-table';
-      detailBtn.textContent = 'Lihat Detail';
-      detailBtn.addEventListener('click', () => openDetailModal(item));
-      tdAksi.appendChild(detailBtn);
-
-      tr.appendChild(tdWaktu);
-      tr.appendChild(tdNama);
-      tr.appendChild(tdKelas);
-      tr.appendChild(tdDivisi);
-      tr.appendChild(tdKegiatan);
-      tr.appendChild(tdSig);
-      tr.appendChild(tdAksi);
-
       tbody.appendChild(tr);
     });
   }
 
-  // =========================================================================
-  // DETAIL MODAL ABSENSI
-  // =========================================================================
-  const detailModal = document.getElementById('detailModal');
-  const detailModalCloseBtn = document.getElementById('detailModalCloseBtn');
-  const detailModalCloseFooterBtn = document.getElementById('detailModalCloseFooterBtn');
-  const detailModalBody = document.getElementById('detailModalBody');
-
-  function openDetailModal(record) {
-    const jurObj = JURUSAN_LIST.find(j => j.id === record.jurusan);
-    const jurNama = jurObj ? jurObj.nama : record.jurusan;
-
-    detailModalBody.innerHTML = `
-      <div class="success-summary-box">
-        <div class="summary-row">
-          <span class="summary-label">Kode Referensi</span>
-          <span class="summary-val" style="font-family: var(--font-mono); font-size: 0.8rem;">${record.id}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Nama Anggota</span>
-          <span class="summary-val">${record.nama}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Kelas & Rombel</span>
-          <span class="summary-val">${record.kelas}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Jurusan</span>
-          <span class="summary-val">${jurNama}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Divisi</span>
-          <span class="summary-val">${record.divisi}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Kegiatan</span>
-          <span class="summary-val">${record.jenisKegiatan}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">Waktu Presensi</span>
-          <span class="summary-val">${formatTanggalIndo(record.tanggal)} • ${record.waktu}</span>
-        </div>
-      </div>
-      <div class="modal-signature-preview">
-        <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
-          Tanda Tangan Digital Resmi
-        </div>
-        <img src="${record.tandaTangan}" alt="Tanda Tangan Digital" style="max-height: 120px;">
-      </div>
-    `;
-
-    detailModal.classList.add('show');
-  }
-
-  function closeDetailModal() {
-    detailModal.classList.remove('show');
-  }
-
-  if (detailModalCloseBtn) detailModalCloseBtn.addEventListener('click', closeDetailModal);
-  if (detailModalCloseFooterBtn) detailModalCloseFooterBtn.addEventListener('click', closeDetailModal);
-
-  // =========================================================================
-  // TABEL 2: DATA ANGGOTA PMR
-  // =========================================================================
-  const filterAnggotaNama = document.getElementById('filterAnggotaNama');
-  const filterAnggotaTingkat = document.getElementById('filterAnggotaTingkat');
-  const filterAnggotaJurusan = document.getElementById('filterAnggotaJurusan');
-  const filterAnggotaRombel = document.getElementById('filterAnggotaRombel');
-  const filterAnggotaDivisi = document.getElementById('filterAnggotaDivisi');
-  const resetFilterAnggotaBtn = document.getElementById('resetFilterAnggotaBtn');
-
-  [filterAnggotaNama, filterAnggotaTingkat, filterAnggotaJurusan, filterAnggotaRombel, filterAnggotaDivisi]
-    .forEach(el => {
-      if (el) el.addEventListener('input', renderAnggotaTable);
-    });
-
-  if (resetFilterAnggotaBtn) {
-    resetFilterAnggotaBtn.addEventListener('click', () => {
-      filterAnggotaNama.value = '';
-      filterAnggotaTingkat.value = 'all';
-      filterAnggotaJurusan.value = 'all';
-      filterAnggotaRombel.value = 'all';
-      filterAnggotaDivisi.value = 'all';
-      renderAnggotaTable();
-    });
-  }
-
-  function getFilteredMembers() {
-    const q = filterAnggotaNama.value.trim().toLowerCase();
-    const tingkat = filterAnggotaTingkat.value;
-    const jurusan = filterAnggotaJurusan.value;
-    const rombel = filterAnggotaRombel.value;
-    const divisi = filterAnggotaDivisi.value;
-
-    const allMembers = getStoredMembers();
-    return allMembers.filter(m => {
-      if (q && !m.nama.toLowerCase().includes(q)) return false;
-      if (tingkat !== 'all' && m.tingkat !== tingkat) return false;
-      if (jurusan !== 'all' && m.jurusan !== jurusan) return false;
-      if (rombel !== 'all' && m.kelas !== rombel) return false;
-      if (divisi !== 'all' && m.divisi !== divisi) return false;
-      return true;
-    });
-  }
-
+  // Render Tabel Anggota
   function renderAnggotaTable() {
     const tbody = document.getElementById('anggotaTableBody');
     const countEl = document.getElementById('anggotaCountText');
     if (!tbody) return;
 
-    const allMembers = getStoredMembers();
-    const filtered = getFilteredMembers();
+    const list = getStoredMembers();
     tbody.innerHTML = '';
-    countEl.textContent = `Menampilkan ${filtered.length} dari ${allMembers.length} anggota resmi`;
+    if (countEl) countEl.textContent = `Menampilkan ${list.length} anggota resmi`;
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty-table-state">
-            <div style="margin-bottom: 8px;">Tidak ada anggota yang sesuai dengan kriteria pencarian.</div>
-            <button type="button" class="btn-primary" id="emptyTableAddMemberBtn" style="font-size: 0.82rem; padding: 6px 14px; width: auto;">
-              + Tambah Anggota Manual
-            </button>
-          </td>
-        </tr>
-      `;
-      const emptyBtn = tbody.querySelector('#emptyTableAddMemberBtn');
-      if (emptyBtn) {
-        emptyBtn.addEventListener('click', openAddMemberModal);
-      }
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Tidak ada data anggota.</td></tr>`;
       return;
     }
 
-    filtered.forEach((m, idx) => {
+    list.forEach((m, idx) => {
       const tr = document.createElement('tr');
       const jurObj = JURUSAN_LIST.find(j => j.id === m.jurusan);
       const jurNama = jurObj ? jurObj.nama : m.jurusan;
-
-      let statusClass = 'status-calon';
-      if (m.status.includes('Pengurus')) statusClass = 'status-pengurus';
-      else if (m.status.includes('Wira')) statusClass = 'status-aktif';
-
       tr.innerHTML = `
         <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
         <td><strong>${m.nama}</strong></td>
         <td>${m.kelas}</td>
         <td>${jurNama}</td>
         <td>${m.divisi}</td>
-        <td><span class="status-pill ${statusClass}">${m.status}</span></td>
+        <td><span class="status-pill status-aktif">${m.status}</span></td>
       `;
-
       tbody.appendChild(tr);
     });
   }
 
-  // =========================================================================
-  // TABEL 3: REKAPITULASI KEHADIRAN (NO CHARTS)
-  // =========================================================================
-  const filterRekapPeriode = document.getElementById('filterRekapPeriode');
-  const filterRekapTingkat = document.getElementById('filterRekapTingkat');
-  const filterRekapJurusan = document.getElementById('filterRekapJurusan');
-  const filterRekapDivisi = document.getElementById('filterRekapDivisi');
-  const exportRekapCsvBtn = document.getElementById('exportRekapCsvBtn');
-
-  [filterRekapPeriode, filterRekapTingkat, filterRekapJurusan, filterRekapDivisi]
-    .forEach(el => {
-      if (el) el.addEventListener('change', renderRekapTable);
-    });
-
-  function getRekapData() {
-    const attendance = getStoredAttendance();
-    const tingkat = filterRekapTingkat.value;
-    const jurusan = filterRekapJurusan.value;
-    const divisi = filterRekapDivisi.value;
-
-    const allMembers = getStoredMembers();
-    // Filter anggota sesuai kriteria
-    const members = allMembers.filter(m => {
-      if (tingkat !== 'all' && m.tingkat !== tingkat) return false;
-      if (jurusan !== 'all' && m.jurusan !== jurusan) return false;
-      if (divisi !== 'all' && m.divisi !== divisi) return false;
-      return true;
-    });
-
-    // Hitung kehadiran
-    return members.map(m => {
-      const records = attendance.filter(a => a.memberId === m.id || a.nama === m.nama);
-      const latihanCount = records.filter(r => r.jenisKegiatan === 'Latihan Rutin').length;
-      const piketCount = records.filter(r => r.jenisKegiatan === 'Piket UKS').length;
-      const tugasLainCount = records.filter(r => r.jenisKegiatan !== 'Latihan Rutin' && r.jenisKegiatan !== 'Piket UKS').length;
-      const total = records.length;
-
-      let keaktifan = 'Cukup';
-      let badgeClass = 'status-calon';
-      if (total >= 3) {
-        keaktifan = 'Sangat Aktif';
-        badgeClass = 'status-aktif';
-      } else if (total >= 1) {
-        keaktifan = 'Aktif';
-        badgeClass = 'status-aktif';
-      } else {
-        keaktifan = 'Perlu Perhatian';
-        badgeClass = 'status-pengurus';
-      }
-
-      return {
-        member: m,
-        latihanCount,
-        piketCount,
-        tugasLainCount,
-        total,
-        keaktifan,
-        badgeClass
-      };
-    });
-  }
-
+  // Render Tabel Rekap
   function renderRekapTable() {
     const tbody = document.getElementById('rekapTableBody');
     const countEl = document.getElementById('rekapCountText');
     if (!tbody) return;
 
-    const rekapData = getRekapData();
+    const members = getStoredMembers();
+    const attendance = getStoredAttendance();
     tbody.innerHTML = '';
-    countEl.textContent = `Rekapitulasi ${rekapData.length} anggota PMR`;
+    if (countEl) countEl.textContent = `Rekapitulasi ${members.length} anggota PMR`;
 
-    if (rekapData.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="9" class="empty-table-state">
-            Tidak ada data anggota yang sesuai untuk direkap.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    rekapData.forEach((row, idx) => {
+    members.forEach((m, idx) => {
+      const records = attendance.filter(a => a.memberId === m.id || a.nama === m.nama);
+      const total = records.length;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
-        <td><strong>${row.member.nama}</strong></td>
-        <td>${row.member.kelas}</td>
-        <td>${row.member.divisi}</td>
-        <td style="text-align: center; font-weight: 500;">${row.latihanCount}</td>
-        <td style="text-align: center; font-weight: 500;">${row.piketCount}</td>
-        <td style="text-align: center; font-weight: 500;">${row.tugasLainCount}</td>
-        <td style="text-align: center; font-weight: 700; color: var(--pmr-red);">${row.total}</td>
-        <td><span class="status-pill ${row.badgeClass}">${row.keaktifan}</span></td>
+        <td><strong>${m.nama}</strong></td>
+        <td>${m.kelas}</td>
+        <td>${m.divisi}</td>
+        <td style="text-align: center;">${total}</td>
+        <td style="text-align: center;">0</td>
+        <td style="text-align: center;">0</td>
+        <td style="text-align: center; font-weight: 700; color: var(--pmr-red);">${total}</td>
+        <td><span class="status-pill status-aktif">${total > 0 ? 'Aktif' : 'Belum Absen'}</span></td>
       `;
       tbody.appendChild(tr);
-    });
-  }
-
-  // =========================================================================
-  // EKSPOR CSV (ABSENSI & REKAP)
-  // =========================================================================
-  function downloadCsv(filename, csvContent) {
-    // Tambahkan UTF-8 BOM agar Excel di Windows membaca karakter dengan benar
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  // Ekspor Absensi CSV
-  const exportCsvBtn = document.getElementById('exportCsvBtn');
-  if (exportCsvBtn) {
-    exportCsvBtn.addEventListener('click', () => {
-      if (state.activeSubView === 'absensi') {
-        const records = getFilteredAttendance();
-        if (records.length === 0) {
-          alert('Tidak ada data absensi untuk diekspor.');
-          return;
-        }
-
-        let csv = 'ID Presensi,Tanggal,Waktu,Nama Anggota,Kelas,Divisi,Jenis Kegiatan\r\n';
-        records.forEach(r => {
-          csv += `"${r.id}","${r.tanggal}","${r.waktu}","${r.nama}","${r.kelas}","${r.divisi}","${r.jenisKegiatan}"\r\n`;
-        });
-
-        downloadCsv(`Presensi_PMR_SMKN7_${new Date().toISOString().split('T')[0]}.csv`, csv);
-      } else if (state.activeSubView === 'anggota') {
-        const members = getFilteredMembers();
-        if (members.length === 0) {
-          alert('Tidak ada data anggota untuk diekspor.');
-          return;
-        }
-
-        let csv = 'No,Nama Lengkap,Kelas,Jurusan,Divisi,Status Keanggotaan\r\n';
-        members.forEach((m, i) => {
-          const jurObj = JURUSAN_LIST.find(j => j.id === m.jurusan);
-          const jurNama = jurObj ? jurObj.nama : m.jurusan;
-          csv += `"${i + 1}","${m.nama}","${m.kelas}","${jurNama}","${m.divisi}","${m.status}"\r\n`;
-        });
-
-        downloadCsv(`Data_Anggota_PMR_SMKN7_${new Date().toISOString().split('T')[0]}.csv`, csv);
-      }
-    });
-  }
-
-  // Ekspor Rekap CSV
-  if (exportRekapCsvBtn) {
-    exportRekapCsvBtn.addEventListener('click', () => {
-      const rekapData = getRekapData();
-      if (rekapData.length === 0) {
-        alert('Tidak ada data rekap untuk diekspor.');
-        return;
-      }
-
-      let csv = 'No,Nama Anggota,Kelas,Divisi,Latihan Rutin,Piket UKS,Tugas Lain,Total Kehadiran,Status Keaktifan\r\n';
-      rekapData.forEach((row, i) => {
-        csv += `"${i + 1}","${row.member.nama}","${row.member.kelas}","${row.member.divisi}",${row.latihanCount},${row.piketCount},${row.tugasLainCount},${row.total},"${row.keaktifan}"\r\n`;
-      });
-
-      downloadCsv(`Rekap_Kehadiran_PMR_SMKN7_${new Date().toISOString().split('T')[0]}.csv`, csv);
     });
   }
 
@@ -1225,7 +662,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const newMemberJurusan = document.getElementById('newMemberJurusan');
   const newMemberRombel = document.getElementById('newMemberRombel');
   const newMemberDivisi = document.getElementById('newMemberDivisi');
-  const newMemberStatus = document.getElementById('newMemberStatus');
   const addMemberSuccessToast = document.getElementById('addMemberSuccessToast');
   const addMemberSuccessToastText = document.getElementById('addMemberSuccessToastText');
 
@@ -1245,10 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openAddMemberModal() {
-    if (!addMemberModal) {
-      console.error("Elemen addModal tidak ditemukan!");
-      return;
-    }
+    if (!addMemberModal) return;
     if (newMemberNama) newMemberNama.value = '';
     if (newMemberNamaError) newMemberNamaError.style.display = 'none';
 
@@ -1273,12 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeAddMemberModal() {
-    if (addMemberModal) {
-      addMemberModal.classList.remove('show');
-    }
+    if (addMemberModal) addMemberModal.classList.remove('show');
   }
 
-  // Pasang Event Listener ke semua tombol tambah anggota yang ada di halaman
   if (openAddMemberModalBtn) {
     openAddMemberModalBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1300,29 +730,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (addMemberModalCloseBtn) {
-    addMemberModalCloseBtn.addEventListener('click', closeAddMemberModal);
-  }
+  if (addMemberModalCloseBtn) addMemberModalCloseBtn.addEventListener('click', closeAddMemberModal);
+  if (addMemberModalCancelBtn) addMemberModalCancelBtn.addEventListener('click', closeAddMemberModal);
 
-  if (addMemberModalCancelBtn) {
-    addMemberModalCancelBtn.addEventListener('click', closeAddMemberModal);
-  }
-
-  if (newMemberTingkat) {
-    newMemberTingkat.addEventListener('change', updateNewMemberRombelOptions);
-  }
-
-  if (newMemberJurusan) {
-    newMemberJurusan.addEventListener('change', updateNewMemberRombelOptions);
-  }
-
-  if (newMemberNama) {
-    newMemberNama.addEventListener('input', () => {
-      if (newMemberNama.value.trim() && newMemberNamaError) {
-        newMemberNamaError.style.display = 'none';
-      }
-    });
-  }
+  if (newMemberTingkat) newMemberTingkat.addEventListener('change', updateNewMemberRombelOptions);
+  if (newMemberJurusan) newMemberJurusan.addEventListener('change', updateNewMemberRombelOptions);
 
   if (addMemberForm) {
     addMemberForm.addEventListener('submit', async (e) => {
@@ -1334,12 +746,6 @@ document.addEventListener('DOMContentLoaded', () => {
         newMemberNama.focus();
         return;
       }
-
-      const tingkatVal = newMemberTingkat.value;
-      const jurusanVal = newMemberJurusan.value;
-      const rombelVal = newMemberRombel.value;
-      const divisiVal = newMemberDivisi.value;
-      const statusVal = newMemberStatus.value;
 
       const submitBtn = document.getElementById('saveMemberSubmitBtn');
       if (submitBtn) {
@@ -1353,11 +759,11 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             nama: namaVal,
-            tingkat: tingkatVal,
-            jurusan: jurusanVal,
-            rombel: rombelVal,
-            divisi: divisiVal,
-            status_keanggotaan: statusVal
+            tingkat: newMemberTingkat.value,
+            jurusan: newMemberJurusan.value,
+            rombel: newMemberRombel.value,
+            divisi: newMemberDivisi.value,
+            status_keanggotaan: document.getElementById('newMemberStatus').value
           })
         });
 
@@ -1369,21 +775,16 @@ document.addEventListener('DOMContentLoaded', () => {
           renderRekapTable();
 
           if (addMemberSuccessToast && addMemberSuccessToastText) {
-            const jurObj = JURUSAN_LIST.find(j => j.id === jurusanVal);
-            const jurLabel = jurObj ? jurObj.nama : jurusanVal;
-            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" (${rombelVal} • ${jurLabel}) berhasil disimpan ke database.`;
+            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" berhasil disimpan ke database MySQL.`;
             addMemberSuccessToast.style.display = 'block';
-
-            setTimeout(() => {
-              addMemberSuccessToast.style.display = 'none';
-            }, 5000);
+            setTimeout(() => { addMemberSuccessToast.style.display = 'none'; }, 5000);
           }
         } else {
           alert("Gagal: " + data.message);
         }
       } catch (err) {
         console.error("Kesalahan jaringan:", err);
-        alert("Gagal terhubung ke server api.php. Pastikan XAMPP aktif.");
+        alert("Gagal terhubung ke server api.php.");
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -1392,165 +793,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-      // Simpan langsung ke MySQL (dengan cadangan lokal)
-      insertMemberOnline(newMember).then(() => {
-        renderAnggotaTable();
-        renderRekapTable();
-      });
 
-      closeAddMemberModal();
-
-      // Refresh tabel anggota & rekap
-      renderAnggotaTable();
-      renderRekapTable();
-
-      // Tampilkan toast notifikasi berhasil
-      if (addMemberSuccessToast && addMemberSuccessToastText) {
-        const jurObj = JURUSAN_LIST.find(j => j.id === jurusanVal);
-        const jurLabel = jurObj ? jurObj.nama : jurusanVal;
-        addMemberSuccessToastText.textContent = `Anggota "${namaVal}" (${rombelVal} • ${jurLabel}) berhasil disimpan ke database.`;
-        addMemberSuccessToast.style.display = 'block';
-
-        setTimeout(() => {
-          addMemberSuccessToast.style.display = 'none';
-        }, 5000);
-      }
-    });
-  
-
-  // =========================================================================
-  // STATUS & MODAL KONEKSI DATABASE MYSQL
-  // =========================================================================
-  const dbConfigModal = document.getElementById('dbConfigModal');
-  const openDbConfigBtn = document.getElementById('openDbConfigBtn');
-  const dbConfigCloseBtn = document.getElementById('dbConfigCloseBtn');
-  const dbConfigCloseFooterBtn = document.getElementById('dbConfigCloseFooterBtn');
-  const dbConfigTestBtn = document.getElementById('dbConfigTestBtn');
-
-  function updateDbStatusUi() {
-    const dot = document.getElementById('dbStatusDot');
-    const text = document.getElementById('dbStatusText');
-    const label = document.getElementById('dbConfigStatusLabel');
-    const detail = document.getElementById('dbConfigStatusDetail');
-    const dbNameEl = document.getElementById('dbConfigDatabaseName');
-    const hostEl = document.getElementById('dbConfigHostName');
-    const mode = typeof getDatabaseMode === 'function' ? getDatabaseMode() : 'local';
-    const statusLabel = typeof getDatabaseStatusLabel === 'function' ? getDatabaseStatusLabel() : 'Database Lokal';
-
-    if (text) text.textContent = statusLabel;
-    if (dot) {
-      if (mode === 'mysql') dot.style.backgroundColor = '#15803D';
-      else if (mode === 'supabase') dot.style.backgroundColor = '#1D4ED8';
-      else dot.style.backgroundColor = '#71717A';
-    }
-    if (label) label.textContent = statusLabel;
-    if (detail) {
-      detail.textContent = phpApiStatus && phpApiStatus.message
-        ? phpApiStatus.message
-        : 'Menunggu pemeriksaan koneksi.';
-    }
-    if (dbNameEl) dbNameEl.textContent = (phpApiStatus && phpApiStatus.database) || 'uks_pmr';
-    if (hostEl) hostEl.textContent = (phpApiStatus && phpApiStatus.host) || '127.0.0.1';
-  }
-
-  function openDbConfigModal() {
-    if (dbConfigModal) dbConfigModal.classList.add('show');
-    updateDbStatusUi();
-  }
-
-  function closeDbConfigModal() {
-    if (dbConfigModal) dbConfigModal.classList.remove('show');
-  }
-
-  if (openDbConfigBtn) openDbConfigBtn.addEventListener('click', openDbConfigModal);
-  if (dbConfigCloseBtn) dbConfigCloseBtn.addEventListener('click', closeDbConfigModal);
-  if (dbConfigCloseFooterBtn) dbConfigCloseFooterBtn.addEventListener('click', closeDbConfigModal);
-
-  if (dbConfigTestBtn) {
-    dbConfigTestBtn.addEventListener('click', async () => {
-      dbConfigTestBtn.disabled = true;
-      dbConfigTestBtn.textContent = 'Menguji...';
-      await checkPhpApi();
-      await fetchMembersOnline();
-      await fetchAttendanceOnline();
-      updateDbStatusUi();
-      renderAbsensiTable();
-      renderAnggotaTable();
-      renderRekapTable();
-      dbConfigTestBtn.disabled = false;
-      dbConfigTestBtn.textContent = 'Uji Koneksi Ulang';
-    });
-  }
-
-  async function hydrateDatabase() {
+  // Inisialisasi Data Awal dari Database
+  async function initApp() {
     await checkPhpApi();
     await fetchMembersOnline();
     await fetchAttendanceOnline();
-    updateDbStatusUi();
+    renderAnggotaTable();
+    renderAbsensiTable();
+    renderRekapTable();
   }
 
-  hydrateDatabase();
-
-  // Tutup Modal dengan tombol ESC
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeConfirmModal();
-      closeDetailModal();
-      closeAddMemberModal();
-      closeDbConfigModal();
-    }
-  });
-
-  // Navigasi URL Hash & Query Param untuk memudahkan pengujian & demo
-  function handleUrlHash() {
-    const hash = window.location.hash.toLowerCase();
-    const searchParams = new URLSearchParams(window.location.search);
-    const searchQuery = searchParams.get('search');
-    const memberIdParam = searchParams.get('member');
-
-    if (memberIdParam) {
-      const found = getStoredMembers().find(m => m.id === memberIdParam);
-      if (found) selectMember(found);
-    } else if (searchQuery && searchInput) {
-      searchInput.value = searchQuery;
-      renderAutocomplete(searchQuery);
-    }
-
-    if (hash === '#secretary' || hash === '#login') {
-      switchMainTab('secretary');
-    } else if (hash === '#admin' || hash === '#admin-absensi') {
-      state.isSecretaryLoggedIn = true;
-      state.activeSubView = 'absensi';
-      switchMainTab('secretary');
-      populateAdminFilterDropdowns();
-      subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'absensi'));
-      renderActiveSecretaryView();
-    } else if (hash === '#admin-anggota') {
-      state.isSecretaryLoggedIn = true;
-      state.activeSubView = 'anggota';
-      switchMainTab('secretary');
-      populateAdminFilterDropdowns();
-      subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'anggota'));
-      renderActiveSecretaryView();
-    } else if (hash === '#admin-tambah-anggota') {
-      state.isSecretaryLoggedIn = true;
-      state.activeSubView = 'anggota';
-      switchMainTab('secretary');
-      populateAdminFilterDropdowns();
-      subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'anggota'));
-      renderActiveSecretaryView();
-      openAddMemberModal();
-    } else if (hash === '#admin-rekap') {
-      state.isSecretaryLoggedIn = true;
-      state.activeSubView = 'rekap';
-      switchMainTab('secretary');
-      populateAdminFilterDropdowns();
-      subnavLinks.forEach(l => l.classList.toggle('active', l.getAttribute('data-subview') === 'rekap'));
-      renderActiveSecretaryView();
-    }
-  }
-
-  window.addEventListener('hashchange', handleUrlHash);
-  handleUrlHash();
-
-;
+  initApp();
+});
