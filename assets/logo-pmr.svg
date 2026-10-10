@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <!-- Outer subtle circular border -->
+  <circle cx="24" cy="24" r="22" fill="#FFFFFF" stroke="#E4E4E7" stroke-width="1.5"/>
+  <circle cx="24" cy="24" r="19" fill="#FFF5F5" stroke="#FCA5A5" stroke-width="0.75" stroke-dasharray="2 2"/>
+  <!-- Red Cross Emblem -->
+  <path d="M21 11H27V21H37V27H27V37H21V27H11V21H21V11Z" fill="#BA1A1A"/>
+  <!-- Center subtle cross accent line -->
+  <circle cx="24" cy="24" r="2.5" fill="#FFFFFF" opacity="0.3"/>
+</svg>

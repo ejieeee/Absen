@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Unit & Integration Tests - Absensi PMR SMKN 7 Samarinda</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+    .pass { color: green; font-weight: bold; }
+    .fail { color: red; font-weight: bold; }
+    .summary { margin-top: 20px; padding: 10px; background: #eee; }
+  </style>
+</head>
+<body>
+  <h1>Hasil Pengujian Sistem Presensi PMR SMKN 7 Samarinda</h1>
+  <canvas id="testCanvas" width="300" height="150" style="display:none;"></canvas>
+  <div id="testOutput"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/signature.js"></script>
+  <script>
+    const output = document.getElementById('testOutput');
+    let passed = 0;
+    let failed = 0;
+
+    function assert(condition, testName) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className = 'pass';
+        el.textContent = `✔ [LULUS] ${testName}`;
+        passed++;
+      } else {
+        el.className = 'fail';
+        el.textContent = `✖ [GAGAL] ${testName}`;
+        failed++;
+      }
+      output.appendChild(el);
+    }
+
+    // 1. Uji Kelengkapan 16 Rombongan Belajar
+    assert(ROMBEL_LIST.length === 16, 'Tepat ada 16 rombongan belajar (8 kelas X dan 8 kelas XI)');
+
+    const expectedRombels = [
+      'X PPLG 1', 'X PPLG 2', 'XI PPLG 1', 'XI PPLG 2',
+      'X TJKT 1', 'X TJKT 2', 'X TJKT 3', 'XI TJKT 1', 'XI TJKT 2', 'XI TJKT 3',
+      'X DKV 1', 'X DKV 2', 'XI DKV 1', 'XI DKV 2',
+      'X Animasi', 'XI Animasi'
+    ];
+    const allRombelsMatch = expectedRombels.every(r => ROMBEL_LIST.some(item => item.id === r));
+    assert(allRombelsMatch, 'Seluruh 16 rombel spesifik (PPLG, TJKT, DKV, Animasi) terdaftar dengan benar');
+
+    // 2. Uji Data Anggota & Tidak Adanya NISN
+    assert(DUMMY_MEMBERS.length >= 30, `Dataset anggota memiliki ${DUMMY_MEMBERS.length} anggota untuk demonstrasi`);
+    const noNisn = DUMMY_MEMBERS.every(m => !('nisn' in m) && !('NISN' in m));
+    assert(noNisn, 'Tidak ada properti NISN dalam dataset anggota (perlindungan privasi)');
+
+    const everyMemberHasValidRombel = DUMMY_MEMBERS.every(m => expectedRombels.includes(m.kelas));
+    assert(everyMemberHasValidRombel, 'Setiap anggota PMR memiliki rombongan belajar yang valid dan sesuai');
+
+    // 3. Uji Autocomplete Pencarian
+    const searchE = DUMMY_MEMBERS.filter(m => m.nama.toLowerCase().includes('e') || m.kelas.toLowerCase().includes('e'));
+    assert(searchE.length > 0, `Pencarian huruf "e" menghasilkan ${searchE.length} anggota yang relevan`);
+
+    const ezioMember = DUMMY_MEMBERS.find(m => m.nama.includes('Ezio'));
+    assert(ezioMember && ezioMember.kelas === 'X PPLG 1', 'Anggota Ezio terdaftar di kelas X PPLG 1');
+
+    // 4. Uji Signature Pad
+    const canvas = document.getElementById('testCanvas');
+    const pad = new SignaturePad(canvas);
+    assert(pad.isEmpty() === true, 'Signature Pad kosong saat pertama kali diinisialisasi');
+
+    // 5. Uji Penyimpanan Presensi
+    const initialCount = getStoredAttendance().length;
+    const testRecord = {
+      id: 'TEST-001',
+      memberId: 'M-01',
+      nama: 'Dimas Pratama',
+      kelas: 'XI PPLG 1',
+      tingkat: 'XI',
+      jurusan: 'PPLG',
+      divisi: 'Pertolongan Pertama',
+      jenisKegiatan: 'Latihan Rutin',
+      tanggal: '2026-10-10',
+      waktu: '19:30 WITA',
+      timestamp: new Date().toISOString(),
+      tandaTangan: 'data:image/svg+xml;utf8,<svg></svg>'
+    };
+    saveAttendanceRecord(testRecord);
+    const updatedCount = getStoredAttendance().length;
+    assert(updatedCount === initialCount + 1, 'Data presensi baru berhasil disimpan ke penyimpanan dan dapat dibaca kembali');
+
+    // Ringkasan
+    const summary = document.createElement('div');
+    summary.className = 'summary';
+    summary.innerHTML = `<strong>Total Pengujian:</strong> ${passed + failed} | <strong>Lulus:</strong> ${passed} | <strong>Gagal:</strong> ${failed}`;
+    document.body.appendChild(summary);
+  </script>
+</body>
+</html>

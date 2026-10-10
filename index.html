@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi PMR Wira • SMK Negeri 7 Samarinda</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/logo-pmr.svg">
+</head>
+<body>
+
+  <!-- =========================================================================
+       HEADER UTAMA: IDENTITAS PMR & SWITCHER NAVIGASI
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="brand-block" id="brandHomeLink" title="Beranda Absensi PMR">
+        <img src="assets/logo-pmr.svg" alt="Logo PMR" class="brand-logo" width="38" height="38">
+        <div class="brand-text">
+          <div class="brand-org">
+            PMR WIRA SMKN 7
+            <span class="brand-badge">SAMARINDA</span>
+          </div>
+          <div class="brand-unit">Palang Merah Remaja Unit 07</div>
+        </div>
+      </a>
+
+      <!-- Nav Switcher (Formulir Anggota vs Portal Sekretaris) -->
+      <nav class="nav-actions" aria-label="Navigasi Utama">
+        <div class="nav-tab-group" role="tablist">
+          <button type="button" class="nav-tab-btn active" id="tabBtnMember" role="tab" aria-selected="true" aria-controls="viewMember">
+            <span class="tab-label-full">Formulir Absensi</span>
+            <span class="tab-label-short">Absensi</span>
+          </button>
+          <button type="button" class="nav-tab-btn" id="tabBtnSecretary" role="tab" aria-selected="false" aria-controls="viewSecretary">
+            <span class="tab-label-full">Portal Sekretaris</span>
+            <span class="tab-label-short">Sekretaris</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN WRAPPER
+       ========================================================================= -->
+  <main class="main-wrapper" id="mainContent">
+
+    <!-- =======================================================================
+         VIEW 1: PORTAL ANGGOTA (FORMULIR ABSENSI SATU HALAMAN)
+         ======================================================================= -->
+    <section id="viewMember" class="form-container" role="tabpanel" aria-labelledby="tabBtnMember">
+      
+      <!-- Header Ringkas Formulir -->
+      <div class="page-lead">
+        <div class="page-lead-meta">Sistem Kehadiran Mandiri</div>
+        <h1 class="page-title">Absensi Latihan & Piket</h1>
+        <p class="page-desc">Silakan cari nama Anda untuk mencatat kehadiran kegiatan latihan rutin, piket ruang UKS, atau tugas pelayanan PMR.</p>
+      </div>
+
+      <!-- State: Form Aktif -->
+      <form id="attendanceForm" class="form-card" novalidate>
+        
+        <!-- 1. Input Pencarian Nama Anggota (Fokus Utama Autocomplete) -->
+        <div class="form-group">
+          <label for="memberSearchInput" class="form-label">
+            Nama Anggota <span class="required-indicator">*</span>
+          </label>
+          <div class="search-input-wrapper">
+            <input 
+              type="text" 
+              id="memberSearchInput" 
+              class="form-input" 
+              placeholder="Ketik nama Anda (misal: Dimas, Siti, Rendy, Ezio)..." 
+              autocomplete="off"
+              required
+            >
+            <button type="button" id="clearSearchBtn" class="search-clear-btn" title="Hapus pencarian">&times;</button>
+          </div>
+          <div class="form-hint">Ketik minimal 1 huruf untuk mencari data Anda dari daftar anggota.</div>
+
+          <!-- Dropdown Autocomplete Hasil Pencarian -->
+          <div id="autocompleteDropdown" class="autocomplete-dropdown" role="listbox" aria-label="Hasil Pencarian Anggota"></div>
+        </div>
+
+        <!-- Hidden ID Anggota Terpilih -->
+        <input type="hidden" id="selectedMemberId" name="memberId" value="">
+
+        <!-- 2. Data Anggota Terpilih (Otomatis & Read-Only) -->
+        <div id="selectedMemberCard" class="member-selected-card" aria-live="polite">
+          <div class="member-selected-header">
+            <div id="selectedMemberName" class="member-selected-name">-</div>
+            <button type="button" id="changeMemberBtn" class="member-selected-reset">Ganti Anggota</button>
+          </div>
+          <div class="member-info-grid">
+            <div class="member-info-item">
+              <span class="member-info-label">Kelas & Rombel</span>
+              <span id="selectedMemberClass" class="member-info-value">-</span>
+            </div>
+            <div class="member-info-item">
+              <span class="member-info-label">Jurusan</span>
+              <span id="selectedMemberMajor" class="member-info-value">-</span>
+            </div>
+            <div class="member-info-item">
+              <span class="member-info-label">Divisi PMR</span>
+              <span id="selectedMemberDivision" class="member-info-value">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Pilihan Jenis Kegiatan -->
+        <div class="form-group">
+          <label class="form-label">
+            Jenis Kegiatan <span class="required-indicator">*</span>
+          </label>
+          <div class="activity-radio-group" id="activityRadioGroup">
+            <!-- Pilihan kegiatan dimuat secara terstruktur via JS -->
+          </div>
+          <div class="form-hint">Pilih kegiatan PMR yang sedang atau baru saja Anda ikuti.</div>
+        </div>
+
+        <!-- 4. Tanggal & Waktu Otomatis -->
+        <div class="form-group">
+          <label class="form-label">Waktu Presensi (Otomatis)</label>
+          <div class="datetime-display-box">
+            <div class="datetime-info-left">
+              <div id="liveDateTimeText" class="datetime-value">Memuat waktu...</div>
+              <div class="datetime-sub">Waktu setempat dicatat otomatis oleh sistem</div>
+            </div>
+            <div class="datetime-badge">WITA (UTC+8)</div>
+          </div>
+        </div>
+
+        <!-- 5. Area Tanda Tangan Digital -->
+        <div class="form-group">
+          <label class="form-label">
+            Tanda Tangan <span class="required-indicator">*</span>
+          </label>
+          <div class="signature-box">
+            <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+            <div class="signature-footer">
+              <span class="signature-guide-text">Sentuh layar atau geser kursor di atas</span>
+              <button type="button" id="clearSignatureBtn" class="signature-clear-btn">Hapus Tanda Tangan</button>
+            </div>
+          </div>
+          <div id="signatureError" class="form-hint" style="color: var(--pmr-red); display: none;">
+            Silakan bubuhkan tanda tangan sebelum mengirim absensi.
+          </div>
+        </div>
+
+        <!-- 6. Tombol Kirim Absensi -->
+        <div class="form-actions">
+          <button type="submit" id="submitAttendanceBtn" class="btn-primary">
+            Kirim Absensi
+          </button>
+        </div>
+      </form>
+
+      <!-- State: Konfirmasi Berhasil Kirim -->
+      <div id="successCard" class="success-card" aria-live="polite">
+        <div class="success-icon-badge">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 class="success-title">Kehadiran Berhasil Dicatat</h2>
+        <p class="success-desc">Data absensi Anda telah tercatat dalam sistem organisasi PMR Wira SMK Negeri 7 Samarinda.</p>
+        
+        <div class="success-summary-box" id="successSummaryBox">
+          <!-- Ringkasan terisi secara dinamis -->
+        </div>
+
+        <button type="button" id="resetFormBtn" class="btn-secondary" style="width: 100%;">
+          Catat Absensi Anggota Lain
+        </button>
+      </div>
+
+    </section>
+
+    <!-- =======================================================================
+         VIEW 2: PORTAL SEKRETARIS (LOGIN & DATA MANAGEMENT)
+         ======================================================================= -->
+    <section id="viewSecretary" class="content-container" role="tabpanel" aria-labelledby="tabBtnSecretary" style="display: none;">
+      
+      <!-- Sub-View: Halaman Login Sekretaris -->
+      <div id="secretaryLoginView" class="login-box-container">
+        <div class="form-card">
+          <div class="login-lead">
+            <h2 class="login-title">Masuk Sekretariat</h2>
+            <p class="login-subtitle">Akses data absensi dan rekapitulasi anggota PMR</p>
+          </div>
+
+          <form id="secretaryLoginForm" novalidate>
+            <div class="form-group">
+              <label for="secUsername" class="form-label">Nama Pengguna (Username)</label>
+              <input type="text" id="secUsername" class="form-input" placeholder="Masukkan username..." required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="secPassword" class="form-label">Kata Sandi (Password)</label>
+              <input type="password" id="secPassword" class="form-input" placeholder="Masukkan kata sandi..." required autocomplete="current-password">
+            </div>
+
+            <div id="loginErrorMsg" class="form-hint" style="color: var(--pmr-red); margin-bottom: 12px; display: none;">
+              Nama pengguna atau kata sandi tidak sesuai.
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top: 6px;">
+              Masuk ke Portal
+            </button>
+
+            <div class="demo-account-hint">
+              <strong>Akun Simulasi:</strong> Username: <code>sekretaris</code> &bull; Password: <code>pmr123</code>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Sub-View: Halaman Utama Sekretaris Setelah Login -->
+      <div id="secretaryMainView" style="display: none;">
+        
+        <!-- Header Panel Sekretaris -->
+        <div class="admin-section-header">
+          <div class="admin-title-group">
+            <h2 id="secretarySectionTitle">Absensi Anggota</h2>
+            <p id="secretarySectionSubtitle">Daftar catatan kehadiran latihan rutin, piket UKS, dan tugas PMR</p>
+          </div>
+          <div class="admin-header-actions">
+            <button type="button" id="exportCsvBtn" class="btn-secondary" title="Unduh data dalam format CSV untuk Excel">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Ekspor Data (CSV)
+            </button>
+            <button type="button" id="secLogoutBtn" class="btn-secondary btn-danger" title="Keluar dari sesi sekretaris">
+              Keluar
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigasi 3 Bagian Utama Sekretaris -->
+        <nav class="secretary-subnav" aria-label="Navigasi Sekretariat">
+          <button type="button" class="subnav-link active" data-subview="absensi">Absensi</button>
+          <button type="button" class="subnav-link" data-subview="anggota">Data Anggota</button>
+          <button type="button" class="subnav-link" data-subview="rekap">Rekap</button>
+        </nav>
+
+        <!-- SUB-PAGE 1: TABEL ABSENSI -->
+        <div id="subviewAbsensi" class="secretary-subcontent">
+          
+          <!-- Filter Bar Absensi -->
+          <div class="filter-bar">
+            <div class="filter-grid">
+              <!-- Cari Nama -->
+              <div class="filter-item">
+                <label for="filterAbsensiNama" class="filter-label">Cari Nama</label>
+                <input type="text" id="filterAbsensiNama" class="filter-input" placeholder="Ketik nama...">
+              </div>
+
+              <!-- Filter Tanggal -->
+              <div class="filter-item">
+                <label for="filterAbsensiTanggal" class="filter-label">Tanggal</label>
+                <select id="filterAbsensiTanggal" class="filter-select">
+                  <option value="all">Semua Tanggal</option>
+                  <option value="today">Hari Ini</option>
+                  <option value="7days">7 Hari Terakhir</option>
+                  <option value="month">Bulan Ini</option>
+                </select>
+              </div>
+
+              <!-- Filter Tingkat Kelas (X / XI) -->
+              <div class="filter-item">
+                <label for="filterAbsensiTingkat" class="filter-label">Tingkat Kelas</label>
+                <select id="filterAbsensiTingkat" class="filter-select">
+                  <option value="all">Semua Tingkat</option>
+                  <option value="X">Kelas X</option>
+                  <option value="XI">Kelas XI</option>
+                </select>
+              </div>
+
+              <!-- Filter Jurusan -->
+              <div class="filter-item">
+                <label for="filterAbsensiJurusan" class="filter-label">Jurusan</label>
+                <select id="filterAbsensiJurusan" class="filter-select">
+                  <option value="all">Semua Jurusan</option>
+                  <option value="PPLG">PPLG</option>
+                  <option value="TJKT">TJKT</option>
+                  <option value="DKV">DKV</option>
+                  <option value="Animasi">Animasi</option>
+                </select>
+              </div>
+
+              <!-- Filter Rombel (16 Rombel Spesifik) -->
+              <div class="filter-item">
+                <label for="filterAbsensiRombel" class="filter-label">Rombel</label>
+                <select id="filterAbsensiRombel" class="filter-select">
+                  <option value="all">Semua Rombel</option>
+                  <!-- Diisi secara dinamis -->
+                </select>
+              </div>
+
+              <!-- Filter Divisi -->
+              <div class="filter-item">
+                <label for="filterAbsensiDivisi" class="filter-label">Divisi</label>
+                <select id="filterAbsensiDivisi" class="filter-select">
+                  <option value="all">Semua Divisi</option>
+                  <!-- Diisi secara dinamis -->
+                </select>
+              </div>
+
+              <!-- Filter Kegiatan -->
+              <div class="filter-item">
+                <label for="filterAbsensiKegiatan" class="filter-label">Jenis Kegiatan</label>
+                <select id="filterAbsensiKegiatan" class="filter-select">
+                  <option value="all">Semua Kegiatan</option>
+                  <!-- Diisi secara dinamis -->
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-bar-footer">
+              <span id="absensiCountText">Menampilkan 0 catatan</span>
+              <button type="button" id="resetFilterAbsensiBtn" class="filter-reset-link">Reset Filter</button>
+            </div>
+          </div>
+
+          <!-- Tabel Absensi -->
+          <div class="table-container">
+            <table class="data-table" id="absensiTable">
+              <thead>
+                <tr>
+                  <th>Waktu Presensi</th>
+                  <th>Nama Anggota</th>
+                  <th>Kelas & Rombel</th>
+                  <th>Divisi</th>
+                  <th>Jenis Kegiatan</th>
+                  <th>Tanda Tangan</th>
+                  <th style="text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="absensiTableBody">
+                <!-- Baris tabel absensi dimuat via JS -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- SUB-PAGE 2: DATA ANGGOTA -->
+        <div id="subviewAnggota" class="secretary-subcontent" style="display: none;">
+          
+          <!-- Filter Data Anggota -->
+          <div class="filter-bar">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label for="filterAnggotaNama" class="filter-label">Cari Nama Anggota</label>
+                <input type="text" id="filterAnggotaNama" class="filter-input" placeholder="Cari nama...">
+              </div>
+
+              <div class="filter-item">
+                <label for="filterAnggotaTingkat" class="filter-label">Tingkat</label>
+                <select id="filterAnggotaTingkat" class="filter-select">
+                  <option value="all">Semua Tingkat</option>
+                  <option value="X">Kelas X</option>
+                  <option value="XI">Kelas XI</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterAnggotaJurusan" class="filter-label">Jurusan</label>
+                <select id="filterAnggotaJurusan" class="filter-select">
+                  <option value="all">Semua Jurusan</option>
+                  <option value="PPLG">PPLG</option>
+                  <option value="TJKT">TJKT</option>
+                  <option value="DKV">DKV</option>
+                  <option value="Animasi">Animasi</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterAnggotaRombel" class="filter-label">Rombel</label>
+                <select id="filterAnggotaRombel" class="filter-select">
+                  <option value="all">Semua Rombel</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterAnggotaDivisi" class="filter-label">Divisi</label>
+                <select id="filterAnggotaDivisi" class="filter-select">
+                  <option value="all">Semua Divisi</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-bar-footer">
+              <span id="anggotaCountText">Menampilkan 0 anggota</span>
+              <button type="button" id="resetFilterAnggotaBtn" class="filter-reset-link">Reset Filter</button>
+            </div>
+          </div>
+
+          <!-- Tabel Anggota -->
+          <div class="table-container">
+            <table class="data-table" id="anggotaTable">
+              <thead>
+                <tr>
+                  <th style="width: 48px;">No</th>
+                  <th>Nama Lengkap</th>
+                  <th>Kelas & Rombel</th>
+                  <th>Jurusan</th>
+                  <th>Divisi</th>
+                  <th>Status Keanggotaan</th>
+                </tr>
+              </thead>
+              <tbody id="anggotaTableBody">
+                <!-- Baris tabel data anggota dimuat via JS -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- SUB-PAGE 3: REKAP KEHADIRAN (NO CHARTS) -->
+        <div id="subviewRekap" class="secretary-subcontent" style="display: none;">
+          
+          <!-- Filter Bar Rekap -->
+          <div class="filter-bar">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <label for="filterRekapPeriode" class="filter-label">Periode</label>
+                <select id="filterRekapPeriode" class="filter-select">
+                  <option value="all">Semua Catatan</option>
+                  <option value="month">Bulan Ini (Oktober 2026)</option>
+                  <option value="semester">Semester Ganjil 2026/2027</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterRekapTingkat" class="filter-label">Tingkat</label>
+                <select id="filterRekapTingkat" class="filter-select">
+                  <option value="all">Semua Tingkat</option>
+                  <option value="X">Kelas X</option>
+                  <option value="XI">Kelas XI</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterRekapJurusan" class="filter-label">Jurusan</label>
+                <select id="filterRekapJurusan" class="filter-select">
+                  <option value="all">Semua Jurusan</option>
+                  <option value="PPLG">PPLG</option>
+                  <option value="TJKT">TJKT</option>
+                  <option value="DKV">DKV</option>
+                  <option value="Animasi">Animasi</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="filterRekapDivisi" class="filter-label">Divisi</label>
+                <select id="filterRekapDivisi" class="filter-select">
+                  <option value="all">Semua Divisi</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-bar-footer">
+              <span id="rekapCountText">Rekapitulasi keaktifan per anggota</span>
+              <button type="button" id="exportRekapCsvBtn" class="btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">
+                Ekspor Rekap (CSV)
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabel Rekapitulasi -->
+          <div class="table-container">
+            <table class="data-table" id="rekapTable">
+              <thead>
+                <tr>
+                  <th style="width: 48px;">No</th>
+                  <th>Nama Anggota</th>
+                  <th>Kelas</th>
+                  <th>Divisi</th>
+                  <th style="text-align: center;">Latihan Rutin</th>
+                  <th style="text-align: center;">Piket UKS</th>
+                  <th style="text-align: center;">Tugas Lain</th>
+                  <th style="text-align: center;">Total Kehadiran</th>
+                  <th>Status Keaktifan</th>
+                </tr>
+              </thead>
+              <tbody id="rekapTableBody">
+                <!-- Baris rekap dimuat via JS -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL 1: KONFIRMASI RINGKASAN SEBELUM KIRIM
+       ========================================================================= -->
+  <div id="confirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="confirmModalTitle" class="modal-title">Konfirmasi Pengisian Absensi</h3>
+        <button type="button" class="modal-close-btn" id="confirmModalCloseBtn" aria-label="Tutup modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Mohon periksa kembali rincian kehadiran Anda sebelum dikirimkan ke sekretariat.
+        </p>
+        <div class="success-summary-box" id="confirmModalContent">
+          <!-- Diisi via JS -->
+        </div>
+        <div class="modal-signature-preview">
+          <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+            Pratinjau Tanda Tangan
+          </div>
+          <img id="confirmModalSignatureImg" src="" alt="Tanda Tangan Anggota">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="confirmModalCancelBtn" class="btn-secondary">
+          Periksa Kembali
+        </button>
+        <button type="button" id="confirmModalProceedBtn" class="btn-primary" style="width: auto;">
+          Kirim Sekarang
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: DETAIL CATATAN ABSENSI (PORTAL SEKRETARIS)
+       ========================================================================= -->
+  <div id="detailModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="detailModalTitle" class="modal-title">Rincian Presensi Anggota</h3>
+        <button type="button" class="modal-close-btn" id="detailModalCloseBtn" aria-label="Tutup modal">&times;</button>
+      </div>
+      <div class="modal-body" id="detailModalBody">
+        <!-- Konten detail dimuat via JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="detailModalCloseFooterBtn" class="btn-secondary">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FOOTER MINIMAL ORGANISASI
+       ========================================================================= -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div>
+        <strong>PMR Wira SMK Negeri 7 Samarinda</strong> &bull; Unit Pelayanan Kesehatan Sekolah
+      </div>
+      <div>
+        Sistem Absensi Sederhana &bull; Dibuat untuk Efisiensi Organisasi
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT MODULAR -->
+  <script src="js/data.js"></script>
+  <script src="js/signature.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1173 @@
+/* ==========================================================================
+   CSS DESIGN SYSTEM: ABSENSI PMR SMK NEGERI 7 SAMARINDA
+   Arah Visual: Minimal Editorial, Bersih, Natural, Identitas PMR yang Terukur
+   Tanpa gradien mencolok, tanpa glassmorphism, tanpa elemen dekoratif berlebih.
+   ========================================================================== */
+
+:root {
+  --bg-page: #FBFBFA;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F4F4F5;
+  --bg-hover: #F8F8F8;
+
+  --text-primary: #18181B;
+  --text-secondary: #52525B;
+  --text-muted: #71717A;
+  --text-inverse: #FFFFFF;
+
+  --border-subtle: #E4E4E7;
+  --border-strong: #D4D4D8;
+  --border-focus: #18181B;
+
+  /* Identitas Palang Merah Remaja */
+  --pmr-red: #BA1A1A;
+  --pmr-red-hover: #9B1414;
+  --pmr-red-subtle: #FEF2F2;
+  --pmr-red-border: #FCA5A5;
+  --pmr-red-text: #991B1B;
+
+  /* Status Netral */
+  --status-active-bg: #F0FDF4;
+  --status-active-text: #166534;
+  --status-active-border: #BBF7D0;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  --max-w-form: 580px;
+  --max-w-content: 1160px;
+}
+
+/* Reset Dasar */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Aksesibilitas Focus */
+:focus-visible {
+  outline: 2px solid var(--pmr-red);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   TOP BAR / HEADER NAVIGASI
+   ========================================================================== */
+.site-header {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.header-container {
+  max-width: var(--max-w-content);
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-org {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-unit {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.brand-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background-color: var(--pmr-red-subtle);
+  color: var(--pmr-red-text);
+  border: 1px solid var(--pmr-red-border);
+  letter-spacing: 0.02em;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Nav Switcher Tab */
+.nav-tab-group {
+  display: inline-flex;
+  background-color: var(--bg-subtle);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.nav-tab-btn {
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.nav-tab-btn.active {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-subtle);
+}
+
+.tab-label-short {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .nav-tab-btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+  .tab-label-full {
+    display: none;
+  }
+  .tab-label-short {
+    display: inline;
+  }
+}
+
+/* ==========================================================================
+   MAIN WRAPPER & CONTAINER
+   ========================================================================== */
+.main-wrapper {
+  flex: 1;
+  padding: 24px 20px 48px;
+}
+
+.content-container {
+  max-width: var(--max-w-content);
+  margin: 0 auto;
+}
+
+.form-container {
+  max-width: var(--max-w-form);
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   PORTAL ANGGOTA: FORMULIR ABSENSI
+   ========================================================================== */
+.page-lead {
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 18px;
+}
+
+.page-lead-meta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pmr-red);
+  margin-bottom: 4px;
+}
+
+.page-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.page-desc {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Card Form Bersih (1px hairline border, natural background) */
+.form-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 24px 22px;
+  box-shadow: var(--shadow-subtle);
+}
+
+.form-group {
+  margin-bottom: 22px;
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.form-label .required-indicator {
+  color: var(--pmr-red);
+  margin-left: 2px;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+/* Input Fields */
+.form-input, .form-select {
+  width: 100%;
+  padding: 10px 13px;
+  font-family: inherit;
+  font-size: 0.94rem;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--pmr-red);
+  box-shadow: 0 0 0 3px rgba(186, 26, 26, 0.12);
+}
+
+.form-input::placeholder {
+  color: #A1A1AA;
+}
+
+/* Search Input Khusus Autocomplete */
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  display: none;
+}
+
+.search-clear-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Dropdown Autocomplete Hasil Pencarian */
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-dropdown);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 50;
+  display: none;
+}
+
+.autocomplete-dropdown.show {
+  display: block;
+}
+
+.autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F4F4F5;
+  transition: background-color 0.1s ease;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover, .autocomplete-item.highlighted {
+  background-color: var(--bg-subtle);
+}
+
+.autocomplete-item-name {
+  font-weight: 600;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+}
+
+.autocomplete-item-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.autocomplete-empty {
+  padding: 14px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Box Data Anggota Terpilih (Read-Only) */
+.member-selected-card {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--pmr-red);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  display: none;
+}
+
+.member-selected-card.visible {
+  display: block;
+}
+
+.member-selected-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.member-selected-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.member-selected-reset {
+  background: none;
+  border: none;
+  color: var(--pmr-red);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  text-decoration: underline;
+}
+
+.member-selected-reset:hover {
+  color: var(--pmr-red-hover);
+}
+
+.member-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 14px;
+  font-size: 0.84rem;
+}
+
+.member-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-info-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.member-info-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Radio Group: Jenis Kegiatan */
+.activity-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.activity-radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background-color: var(--bg-surface);
+  transition: all 0.15s ease;
+}
+
+.activity-radio-label:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-focus);
+}
+
+.activity-radio-label input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--pmr-red);
+}
+
+.activity-radio-label.selected {
+  border-color: var(--pmr-red);
+  background-color: var(--pmr-red-subtle);
+}
+
+.activity-text-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activity-text-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* Tanggal & Waktu Otomatis Display */
+.datetime-display-box {
+  background-color: #FAFAFA;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.datetime-info-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.datetime-value {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.datetime-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.datetime-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #047857;
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+}
+
+/* Area Tanda Tangan */
+.signature-box {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  overflow: hidden;
+  position: relative;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 150px;
+  display: block;
+  cursor: crosshair;
+}
+
+.signature-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #FAFAFA;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.signature-guide-text {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.signature-clear-btn {
+  background: none;
+  border: none;
+  color: var(--pmr-red);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.signature-clear-btn:hover {
+  text-decoration: underline;
+}
+
+/* Tombol Aksi Formulir */
+.form-actions {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-primary {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  background-color: var(--pmr-red);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background-color: var(--pmr-red-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.99);
+}
+
+.btn-primary:disabled {
+  background-color: #D4D4D8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--text-secondary);
+}
+
+.btn-danger {
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+}
+
+.btn-danger:hover {
+  background-color: #FEE2E2;
+}
+
+/* State Berhasil (Success Confirmation) */
+.success-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-subtle);
+  display: none;
+}
+
+.success-card.visible {
+  display: block;
+}
+
+.success-icon-badge {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background-color: var(--pmr-red-subtle);
+  border: 1px solid var(--pmr-red-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pmr-red);
+}
+
+.success-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.success-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 440px;
+  margin: 0 auto 20px;
+}
+
+.success-summary-box {
+  background-color: #FAFAFA;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summary-label {
+  color: var(--text-muted);
+}
+
+.summary-val {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* ==========================================================================
+   PORTAL SEKRETARIS: LOGIN VIEW
+   ========================================================================== */
+.login-box-container {
+  max-width: 400px;
+  margin: 40px auto;
+}
+
+.login-lead {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.demo-account-hint {
+  margin-top: 18px;
+  padding: 10px 12px;
+  background-color: #FAFAFA;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   PORTAL SEKRETARIS: DASHBOARD & SUB-VIEWS
+   ========================================================================== */
+.admin-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-title-group h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.admin-title-group p {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Sub-nav Tab Sekretaris (Absensi, Data Anggota, Rekap) */
+.secretary-subnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 22px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.subnav-link {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.subnav-link:hover {
+  color: var(--text-primary);
+}
+
+.subnav-link.active {
+  color: var(--pmr-red);
+  font-weight: 600;
+  border-bottom-color: var(--pmr-red);
+}
+
+/* Filter Bar Terstruktur */
+.filter-bar {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.filter-select, .filter-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.filter-select:focus, .filter-input:focus {
+  outline: none;
+  border-color: var(--pmr-red);
+}
+
+.filter-bar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid #F4F4F5;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.filter-reset-link {
+  color: var(--pmr-red);
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Tabel Bersih & Terstruktur */
+.table-container {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  box-shadow: var(--shadow-subtle);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.data-table th {
+  background-color: #FAFAFA;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background-color: #FAFAFA;
+}
+
+.table-signature-thumb {
+  width: 60px;
+  height: 28px;
+  object-fit: contain;
+  background-color: #FAFAFA;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  display: block;
+}
+
+.btn-action-table {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  background-color: #FAFAFA;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.btn-action-table:hover {
+  background-color: var(--pmr-red-subtle);
+  color: var(--pmr-red-text);
+  border-color: var(--pmr-red-border);
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+}
+
+.status-pill.status-aktif {
+  background-color: var(--status-active-bg);
+  color: var(--status-active-text);
+  border: 1px solid var(--status-active-border);
+}
+
+.status-pill.status-pengurus {
+  background-color: var(--pmr-red-subtle);
+  color: var(--pmr-red-text);
+  border: 1px solid var(--pmr-red-border);
+}
+
+.status-pill.status-calon {
+  background-color: #F4F4F5;
+  color: #52525B;
+  border: 1px solid #D4D4D8;
+}
+
+.empty-table-state {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   MODAL DIALOG (DETAIL ABSENSI & KONFIRMASI)
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-backdrop.show {
+  display: flex;
+}
+
+.modal-dialog {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  animation: modalFadeIn 0.18s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 14px 20px;
+  background-color: #FAFAFA;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Pratinjau Tanda Tangan Dalam Modal */
+.modal-signature-preview {
+  margin-top: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: #FAFAFA;
+  padding: 12px;
+  text-align: center;
+}
+
+.modal-signature-preview img {
+  max-height: 100px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+.site-footer {
+  margin-top: auto;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding: 18px 20px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.footer-container {
+  max-width: var(--max-w-content);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (360px - 768px - 1440px)
+   ========================================================================== */
+@media (max-width: 640px) {
+  .header-container {
+    padding: 10px 14px;
+  }
+
+  .main-wrapper {
+    padding: 16px 12px 36px;
+  }
+
+  .form-card {
+    padding: 18px 16px;
+  }
+
+  .member-info-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .admin-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
