@@ -143,7 +143,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.filteredAutocompleteList.length === 0) {
       const emptyItem = document.createElement('div');
       emptyItem.className = 'autocomplete-empty';
-      emptyItem.textContent = 'Nama anggota tidak ditemukan dalam daftar PMR.';
+      emptyItem.innerHTML = `
+        <div>Nama anggota tidak ditemukan dalam daftar PMR.</div>
+        <div style="margin-top: 6px; font-size: 0.78rem; color: var(--text-muted);">Belum terdaftar?</div>
+        <button type="button" class="btn-secondary" id="autocompleteAddMemberBtn" style="margin-top: 6px; font-size: 0.8rem; padding: 4px 10px; width: 100%;">
+          + Tambah Anggota Secara Manual
+        </button>
+      `;
+      const autoAddBtn = emptyItem.querySelector('#autocompleteAddMemberBtn');
+      if (autoAddBtn) {
+        autoAddBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          dropdown.classList.remove('show');
+          openAddMemberModal();
+          if (newMemberNama) {
+            newMemberNama.value = query.trim();
+          }
+        });
+      }
       dropdown.appendChild(emptyItem);
       dropdown.classList.add('show');
       return;
@@ -901,10 +918,17 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" class="empty-table-state">
-            Tidak ada anggota yang sesuai dengan kriteria pencarian.
+            <div style="margin-bottom: 8px;">Tidak ada anggota yang sesuai dengan kriteria pencarian.</div>
+            <button type="button" class="btn-primary" id="emptyTableAddMemberBtn" style="font-size: 0.82rem; padding: 6px 14px; width: auto;">
+              + Tambah Anggota Manual
+            </button>
           </td>
         </tr>
       `;
+      const emptyBtn = tbody.querySelector('#emptyTableAddMemberBtn');
+      if (emptyBtn) {
+        emptyBtn.addEventListener('click', openAddMemberModal);
+      }
       return;
     }
 
@@ -1163,6 +1187,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (openAddMemberModalBtn) {
     openAddMemberModalBtn.addEventListener('click', openAddMemberModal);
+  }
+
+  const headerAddMemberBtn = document.getElementById('headerAddMemberBtn');
+  if (headerAddMemberBtn) {
+    headerAddMemberBtn.addEventListener('click', openAddMemberModal);
+  }
+
+  const absensiAddMemberPromptBtn = document.getElementById('absensiAddMemberPromptBtn');
+  if (absensiAddMemberPromptBtn) {
+    absensiAddMemberPromptBtn.addEventListener('click', openAddMemberModal);
   }
 
   if (addMemberModalCloseBtn) {
