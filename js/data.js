@@ -333,6 +333,130 @@ function saveAttendanceRecord(record) {
   return updated;
 }
 
+// ============================================================================
+// SUPABASE ASYNCHRONOUS DATA WRAPPERS (ONLINE-FIRST DENGAN FALLBACK LOKAL)
+// ============================================================================
+
+async function fetchMembersOnline() {
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (!client) {
+    return getStoredMembers();
+  }
+  try {
+    const { data, error } = await client
+      .from('members')
+      .select('*')
+      .order('nama', { ascending: true });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(data));
+      } catch (e) {}
+      return data;
+    }
+  } catch (err) {
+    console.warn('Gagal fetch data anggota dari Supabase, fallback ke lokal:', err);
+  }
+  return getStoredMembers();
+}
+
+async function fetchAttendanceOnline() {
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (!client) {
+    return getStoredAttendance();
+  }
+  try {
+    const { data, error } = await client
+      .from('attendances')
+      .select('*')
+      .order('timestamp', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      const mapped = data.map(d => ({
+        id: d.id,
+        memberId: d.member_id,
+        nama: d.nama,
+        kelas: d.kelas,
+        tingkat: d.tingkat,
+        jurusan: d.jurusan,
+        divisi: d.divisi,
+        jenisKegiatan: d.jenis_kegiatan,
+        tanggal: d.tanggal,
+        waktu: d.waktu,
+        timestamp: d.timestamp,
+        tandaTangan: d.tanda_tangan
+      }));
+
+      try {
+        localStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(mapped));
+      } catch (e) {}
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Gagal fetch presensi dari Supabase, fallback ke lokal:', err);
+  }
+  return getStoredAttendance();
+}
+
+async function insertMemberOnline(member) {
+  // Simpan selalu ke cache lokal untuk respons UI instan
+  saveMemberRecord(member);
+
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (client) {
+    try {
+      const payload = {
+        id: member.id,
+        nama: member.nama,
+        kelas: member.kelas,
+        tingkat: member.tingkat,
+        jurusan: member.jurusan,
+        divisi: member.divisi,
+        status: member.status
+      };
+      const { error } = await client.from('members').insert([payload]);
+      if (error) {
+        console.warn('Supabase insert member error:', error);
+      }
+    } catch (err) {
+      console.warn('Supabase insert member failed:', err);
+    }
+  }
+  return getStoredMembers();
+}
+
+async function insertAttendanceOnline(record) {
+  // Simpan selalu ke cache lokal
+  saveAttendanceRecord(record);
+
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (client) {
+    try {
+      const payload = {
+        id: record.id,
+        member_id: record.memberId,
+        nama: record.nama,
+        kelas: record.kelas,
+        tingkat: record.tingkat,
+        jurusan: record.jurusan,
+        divisi: record.divisi,
+        jenis_kegiatan: record.jenisKegiatan,
+        tanggal: record.tanggal,
+        waktu: record.waktu,
+        timestamp: record.timestamp,
+        tanda_tangan: record.tandaTangan
+      };
+      const { error } = await client.from('attendances').insert([payload]);
+      if (error) {
+        console.warn('Supabase insert attendance error:', error);
+      }
+    } catch (err) {
+      console.warn('Supabase insert attendance failed:', err);
+    }
+  }
+  return getStoredAttendance();
+}
+
 // Format Tanggal Indonesia
 function formatTanggalIndo(dateStr) {
   if (!dateStr) return '-';
