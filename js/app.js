@@ -1,11 +1,7 @@
 /**
  * app.js - Logika Interaktif Aplikasi Absensi PMR SMK Negeri 7 Samarinda
- * Dirancang untuk GitHub Pages dengan Database Cloud Supabase.
  */
 
-// =========================================================================
-// CACHE DATA & INTEGRASI SUPABASE
-// =========================================================================
 let dbAnggotaCache = [];
 let dbAbsensiCache = [];
 
@@ -24,7 +20,7 @@ async function fetchMembersOnline() {
         id: String(m.id),
         nama: m.nama,
         kelas: m.kelas,
-        jurusanRombel: m.jurusan_rombel,
+        jurusan: m.jurusan,
         divisi: m.divisi
       }));
     }
@@ -40,7 +36,7 @@ async function fetchAttendanceOnline() {
   try {
     let { data, error } = await client
       .from('tb_absensi')
-      .select('*, tb_anggota(nama, kelas, jurusan_rombel, divisi)')
+      .select('*, tb_anggota(nama, kelas, jurusan, divisi)')
       .order('waktu_presensi', { ascending: false });
 
     if (!error && data) {
@@ -55,8 +51,8 @@ async function fetchAttendanceOnline() {
           id: `PMR-${a.id}`,
           memberId: String(a.member_id),
           nama: m.nama || 'Anggota',
-          kelas: m.kelas || '-',
-          jurusanRombel: m.jurusan_rombel || '-',
+          kelas: m.kelas || 'X',
+          jurusan: m.jurusan || '-',
           divisi: m.divisi || '-',
           tanggal: tgl,
           waktu: jamWaktu,
@@ -77,20 +73,14 @@ function getStoredAttendance() {
   return dbAbsensiCache;
 }
 
-// =========================================================================
-// LOGIKA UTAMA APLIKASI (DOM LOADED)
-// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   const state = {
     selectedMember: null,
     signaturePad: null,
     isSecretaryLoggedIn: false,
     activeSubView: 'absensi',
-    highlightedAutocompleteIndex: -1,
-    filteredAutocompleteList: []
   };
 
-  // 1. Inisialisasi Canvas Tanda Tangan Digital
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
@@ -105,38 +95,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const clearSigBtn = document.getElementById('clearSignatureBtn');
   if (clearSigBtn && state.signaturePad) {
-    clearSigBtn.addEventListener('click', () => {
-      state.signaturePad.clear();
-    });
+    clearSigBtn.addEventListener('click', () => { state.signaturePad.clear(); });
   }
 
-  // 2. Jam Digital WITA
   function updateLiveClock() {
     const clockEl = document.getElementById('liveDateTimeText');
     if (!clockEl) return;
-
     const now = new Date();
     const hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const bulanNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-
-    const hari = hariNames[now.getDay()];
-    const tgl = now.getDate();
-    const bln = bulanNames[now.getMonth()];
-    const thn = now.getFullYear();
-
-    const jam = String(now.getHours()).padStart(2, '0');
-    const menit = String(now.getMinutes()).padStart(2, '0');
-    const detik = String(now.getSeconds()).padStart(2, '0');
-
-    clockEl.textContent = `${hari}, ${tgl} ${bln} ${thn} • ${jam}:${menit}:${detik} WITA`;
+    const bulanNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    clockEl.textContent = `${hariNames[now.getDay()]}, ${now.getDate()} ${bulanNames[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WITA`;
   }
   updateLiveClock();
   setInterval(updateLiveClock, 1000);
 
-  // 3. Autocomplete Nama Anggota
   const searchInput = document.getElementById('memberSearchInput');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const dropdown = document.getElementById('autocompleteDropdown');
@@ -147,67 +120,45 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAutocomplete(query) {
     const cleanQuery = query.trim().toLowerCase();
     dropdown.innerHTML = '';
-    state.highlightedAutocompleteIndex = -1;
-
     if (!cleanQuery) {
       dropdown.classList.remove('show');
-      state.filteredAutocompleteList = [];
       return;
     }
 
     const allMembers = getStoredMembers();
-    state.filteredAutocompleteList = allMembers.filter(m => {
-      return m.nama.toLowerCase().includes(cleanQuery) ||
-             m.kelas.toLowerCase().includes(cleanQuery) ||
-             m.jurusanRombel.toLowerCase().includes(cleanQuery);
-    });
+    const filtered = allMembers.filter(m => 
+      m.nama.toLowerCase().includes(cleanQuery) || 
+      m.jurusan.toLowerCase().includes(cleanQuery)
+    );
 
-    if (state.filteredAutocompleteList.length === 0) {
+    if (filtered.length === 0) {
       const emptyItem = document.createElement('div');
       emptyItem.className = 'autocomplete-empty';
       emptyItem.innerHTML = `
-        <div>Nama anggota tidak ditemukan dalam daftar PMR.</div>
-        <div style="margin-top: 6px; font-size: 0.78rem; color: var(--text-muted);">Belum terdaftar?</div>
+        <div>Nama anggota tidak ditemukan.</div>
         <button type="button" class="btn-secondary" id="autocompleteAddMemberBtn" style="margin-top: 6px; font-size: 0.8rem; padding: 4px 10px; width: 100%;">
           + Tambah Anggota Secara Manual
         </button>
       `;
-      const autoAddBtn = emptyItem.querySelector('#autocompleteAddMemberBtn');
-      if (autoAddBtn) {
-        autoAddBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          dropdown.classList.remove('show');
-          openAddMemberModal();
-          if (newMemberNama) {
-            newMemberNama.value = query.trim();
-          }
-        });
-      }
+      emptyItem.querySelector('#autocompleteAddMemberBtn').addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        dropdown.classList.remove('show');
+        document.getElementById('addMemberModal').classList.add('show');
+        document.getElementById('newMemberNama').value = query.trim();
+      });
       dropdown.appendChild(emptyItem);
       dropdown.classList.add('show');
       return;
     }
 
-    state.filteredAutocompleteList.forEach((member, index) => {
+    filtered.forEach(member => {
       const item = document.createElement('div');
       item.className = 'autocomplete-item';
-      item.setAttribute('role', 'option');
-
-      const nameEl = document.createElement('div');
-      nameEl.className = 'autocomplete-item-name';
-      nameEl.textContent = member.nama;
-
-      const metaEl = document.createElement('div');
-      metaEl.className = 'autocomplete-item-meta';
-      metaEl.textContent = `Kelas ${member.kelas} • ${member.jurusanRombel}`;
-
-      item.appendChild(nameEl);
-      item.appendChild(metaEl);
-
-      item.addEventListener('click', () => {
-        selectMember(member);
-      });
-
+      item.innerHTML = `
+        <div class="autocomplete-item-name">${member.nama}</div>
+        <div class="autocomplete-item-meta">Kelas ${member.kelas} • ${member.jurusan}</div>
+      `;
+      item.addEventListener('click', () => selectMember(member));
       dropdown.appendChild(item);
     });
 
@@ -220,15 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) searchInput.value = member.nama;
     if (dropdown) dropdown.classList.remove('show');
 
-    const nameEl = document.getElementById('selectedMemberName');
-    const classEl = document.getElementById('selectedMemberClass');
-    const majorEl = document.getElementById('selectedMemberMajor');
-    const divEl = document.getElementById('selectedMemberDivision');
-
-    if (nameEl) nameEl.textContent = member.nama;
-    if (classEl) classEl.textContent = member.kelas;
-    if (majorEl) majorEl.textContent = member.jurusanRombel;
-    if (divEl) divEl.textContent = member.divisi;
+    document.getElementById('selectedMemberName').textContent = member.nama;
+    document.getElementById('selectedMemberClass').textContent = `Kelas ${member.kelas} - ${member.jurusan}`;
+    document.getElementById('selectedMemberDivision').textContent = member.divisi;
 
     if (selectedMemberCard) selectedMemberCard.classList.add('visible');
     if (clearSearchBtn) clearSearchBtn.style.display = 'block';
@@ -246,248 +191,130 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      const val = e.target.value;
-      if (clearSearchBtn) clearSearchBtn.style.display = val ? 'block' : 'none';
-      renderAutocomplete(val);
-    });
-
-    searchInput.addEventListener('focus', () => {
-      if (searchInput.value) renderAutocomplete(searchInput.value);
+      clearSearchBtn.style.display = e.target.value ? 'block' : 'none';
+      renderAutocomplete(e.target.value);
     });
   }
 
   if (clearSearchBtn) clearSearchBtn.addEventListener('click', resetMemberSelection);
   if (changeMemberBtn) changeMemberBtn.addEventListener('click', resetMemberSelection);
 
-  document.addEventListener('click', (e) => {
-    if (searchInput && dropdown && !searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.classList.remove('show');
-    }
-  });
-
-  // 4. Submit Absensi Anggota
+  // Submit Absensi
   const attendanceForm = document.getElementById('attendanceForm');
   const successCard = document.getElementById('successCard');
-  const resetFormBtn = document.getElementById('resetFormBtn');
-  const signatureError = document.getElementById('signatureError');
 
   if (attendanceForm) {
     attendanceForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       if (!state.selectedMember) {
-        if (searchInput) searchInput.focus();
         alert('Silakan cari dan pilih nama anggota terlebih dahulu.');
         return;
       }
-
-      if (state.signaturePad && state.signaturePad.isEmpty()) {
-        if (signatureError) signatureError.style.display = 'block';
-        if (canvasEl) canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (state.signaturePad.isEmpty()) {
+        document.getElementById('signatureError').style.display = 'block';
         return;
-      } else if (signatureError) {
-        signatureError.style.display = 'none';
       }
 
-      const submitBtn = document.getElementById('submitAttendanceBtn');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Mengirim...';
+      const client = getSupabaseClient();
+      if (!client) {
+        alert("Gagal terhubung ke Supabase.");
+        return;
       }
 
-      try {
-        const client = getSupabaseClient();
-        if (!client) {
-          alert("Gagal terhubung ke Supabase. Periksa file supabase-config.js Anda.");
-          return;
-        }
+      let { error } = await client.from('tb_absensi').insert([{
+        member_id: parseInt(state.selectedMember.id, 10),
+        signature_data: state.signaturePad.toDataURL()
+      }]);
 
-        let { error } = await client.from('tb_absensi').insert([{
-          member_id: parseInt(state.selectedMember.id, 10),
-          signature_data: state.signaturePad.toDataURL()
-        }]);
+      if (!error) {
+        await fetchAttendanceOnline();
+        renderAbsensiTable();
+        renderRekapTable();
 
-        if (!error) {
-          await fetchAttendanceOnline();
-          renderAbsensiTable();
-          renderRekapTable();
-
-          attendanceForm.style.display = 'none';
-          const now = new Date();
-          const dateStr = now.toISOString().split('T')[0];
-          const jam = String(now.getHours()).padStart(2, '0');
-          const menit = String(now.getMinutes()).padStart(2, '0');
-          const timeFormatted = `${jam}:${menit} WITA`;
-
-          const summaryBox = document.getElementById('successSummaryBox');
-          if (summaryBox) {
-            summaryBox.innerHTML = `
-              <div class="summary-row">
-                <span class="summary-label">Nama Anggota</span>
-                <span class="summary-val">${state.selectedMember.nama}</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Kelas & Rombel</span>
-                <span class="summary-val">${state.selectedMember.kelas} • ${state.selectedMember.jurusanRombel}</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Divisi</span>
-                <span class="summary-val">${state.selectedMember.divisi}</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Waktu Presensi</span>
-                <span class="summary-val">${formatTanggalIndo(dateStr)} • ${timeFormatted}</span>
-              </div>
-            `;
-          }
-
-          if (successCard) successCard.classList.add('visible');
-        } else {
-          alert("Gagal mencatat absensi: " + error.message);
-        }
-      } catch (err) {
-        console.error("Kesalahan pengiriman absensi:", err);
-        alert("Terjadi kesalahan jaringan.");
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Kirim Absensi';
-        }
+        attendanceForm.style.display = 'none';
+        const now = new Date();
+        document.getElementById('successSummaryBox').innerHTML = `
+          <div class="summary-row"><span class="summary-label">Nama</span><span class="summary-val">${state.selectedMember.nama}</span></div>
+          <div class="summary-row"><span class="summary-label">Kelas / Jurusan</span><span class="summary-val">Kelas ${state.selectedMember.kelas} - ${state.selectedMember.jurusan}</span></div>
+          <div class="summary-row"><span class="summary-label">Divisi</span><span class="summary-val">${state.selectedMember.divisi}</span></div>
+        `;
+        successCard.classList.add('visible');
+      } else {
+        alert("Gagal mencatat absensi: " + error.message);
       }
     });
   }
 
-  if (resetFormBtn) {
-    resetFormBtn.addEventListener('click', () => {
-      if (successCard) successCard.classList.remove('visible');
-      if (attendanceForm) attendanceForm.style.display = 'block';
-      resetMemberSelection();
-      if (state.signaturePad) state.signaturePad.clear();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
+  document.getElementById('resetFormBtn')?.addEventListener('click', () => {
+    successCard.classList.remove('visible');
+    attendanceForm.style.display = 'block';
+    resetMemberSelection();
+    state.signaturePad.clear();
+  });
 
-  // 5. Switcher Tab Utama (Formulir vs Sekretaris)
-  const tabBtnMember = document.getElementById('tabBtnMember');
-  const tabBtnSecretary = document.getElementById('tabBtnSecretary');
-  const viewMember = document.getElementById('viewMember');
-  const viewSecretary = document.getElementById('viewSecretary');
-  const brandHomeLink = document.getElementById('brandHomeLink');
+  // Switcher Tab Utama
+  document.getElementById('tabBtnMember')?.addEventListener('click', () => {
+    document.getElementById('tabBtnMember').classList.add('active');
+    document.getElementById('tabBtnSecretary').classList.remove('active');
+    document.getElementById('viewMember').style.display = 'block';
+    document.getElementById('viewSecretary').style.display = 'none';
+  });
 
-  function switchMainTab(target) {
-    if (target === 'member') {
-      if (tabBtnMember) {
-        tabBtnMember.classList.add('active');
-        tabBtnMember.setAttribute('aria-selected', 'true');
-      }
-      if (tabBtnSecretary) {
-        tabBtnSecretary.classList.remove('active');
-        tabBtnSecretary.setAttribute('aria-selected', 'false');
-      }
-      if (viewMember) viewMember.style.display = 'block';
-      if (viewSecretary) viewSecretary.style.display = 'none';
+  document.getElementById('tabBtnSecretary')?.addEventListener('click', () => {
+    document.getElementById('tabBtnSecretary').classList.add('active');
+    document.getElementById('tabBtnMember').classList.remove('active');
+    document.getElementById('viewMember').style.display = 'none';
+    document.getElementById('viewSecretary').style.display = 'block';
 
-      if (state.signaturePad) state.signaturePad.resizeCanvas();
+    if (state.isSecretaryLoggedIn) {
+      document.getElementById('secretaryLoginView').style.display = 'none';
+      document.getElementById('secretaryMainView').style.display = 'block';
     } else {
-      if (tabBtnSecretary) {
-        tabBtnSecretary.classList.add('active');
-        tabBtnSecretary.setAttribute('aria-selected', 'true');
-      }
-      if (tabBtnMember) {
-        tabBtnMember.classList.remove('active');
-        tabBtnMember.setAttribute('aria-selected', 'false');
-      }
-      if (viewMember) viewMember.style.display = 'none';
-      if (viewSecretary) viewSecretary.style.display = 'block';
+      document.getElementById('secretaryLoginView').style.display = 'block';
+      document.getElementById('secretaryMainView').style.display = 'none';
+    }
+  });
 
-      if (state.isSecretaryLoggedIn) {
+  // Login Sekretaris
+  document.getElementById('secretaryLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const u = document.getElementById('secUsername').value.trim();
+    const p = document.getElementById('secPassword').value.trim();
+
+    if (u === 'sekretaris' && p === 'pmr123') {
+      state.isSecretaryLoggedIn = true;
+      document.getElementById('secretaryLoginView').style.display = 'none';
+      document.getElementById('secretaryMainView').style.display = 'block';
+      renderActiveSecretaryView();
+      return;
+    }
+
+    try {
+      const client = getSupabaseClient();
+      let { data, error } = await client.from('tb_admin_sekretaris').select('*').eq('username', u).eq('password', p);
+      if (!error && data && data.length > 0) {
+        state.isSecretaryLoggedIn = true;
         document.getElementById('secretaryLoginView').style.display = 'none';
         document.getElementById('secretaryMainView').style.display = 'block';
         renderActiveSecretaryView();
       } else {
-        document.getElementById('secretaryLoginView').style.display = 'block';
-        document.getElementById('secretaryMainView').style.display = 'none';
+        document.getElementById('loginErrorMsg').style.display = 'block';
       }
+    } catch (err) {
+      document.getElementById('loginErrorMsg').style.display = 'block';
     }
-  }
+  });
 
-  if (tabBtnMember) tabBtnMember.addEventListener('click', () => switchMainTab('member'));
-  if (tabBtnSecretary) tabBtnSecretary.addEventListener('click', () => switchMainTab('secretary'));
-  if (brandHomeLink) {
-    brandHomeLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      switchMainTab('member');
-    });
-  }
+  document.getElementById('secLogoutBtn')?.addEventListener('click', () => {
+    state.isSecretaryLoggedIn = false;
+    document.getElementById('secretaryLoginView').style.display = 'block';
+    document.getElementById('secretaryMainView').style.display = 'none';
+  });
 
-  // 6. Login Sekretaris via Supabase
-  const secretaryLoginForm = document.getElementById('secretaryLoginForm');
-  const secUsernameInput = document.getElementById('secUsername');
-  const secPasswordInput = document.getElementById('secPassword');
-  const loginErrorMsg = document.getElementById('loginErrorMsg');
-  const secLogoutBtn = document.getElementById('secLogoutBtn');
-
-  if (secretaryLoginForm) {
-    secretaryLoginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const u = secUsernameInput.value.trim();
-      const p = secPasswordInput.value.trim();
-
-      try {
-        const client = getSupabaseClient();
-        if (!client) {
-          // Fallback login lokal jika Supabase belum terkonfigurasi
-          if (u === 'sekretaris' && p === 'pmr123') {
-            state.isSecretaryLoggedIn = true;
-            document.getElementById('secretaryLoginView').style.display = 'none';
-            document.getElementById('secretaryMainView').style.display = 'block';
-            renderActiveSecretaryView();
-            return;
-          }
-        }
-
-        let { data, error } = await client
-          .from('tb_admin_sekretaris')
-          .select('*')
-          .eq('username', u)
-          .eq('password', p)
-          .single();
-
-        if (!error && data) {
-          state.isSecretaryLoggedIn = true;
-          if (loginErrorMsg) loginErrorMsg.style.display = 'none';
-          document.getElementById('secretaryLoginView').style.display = 'none';
-          document.getElementById('secretaryMainView').style.display = 'block';
-          renderActiveSecretaryView();
-        } else {
-          if (loginErrorMsg) {
-            loginErrorMsg.style.display = 'block';
-            loginErrorMsg.textContent = 'Username atau password salah.';
-          }
-        }
-      } catch (err) {
-        if (loginErrorMsg) {
-          loginErrorMsg.style.display = 'block';
-          loginErrorMsg.textContent = 'Gagal terhubung ke database.';
-        }
-      }
-    });
-  }
-
-  if (secLogoutBtn) {
-    secLogoutBtn.addEventListener('click', () => {
-      state.isSecretaryLoggedIn = false;
-      document.getElementById('secretaryLoginView').style.display = 'block';
-      document.getElementById('secretaryMainView').style.display = 'none';
-      if (secPasswordInput) secPasswordInput.value = '';
-    });
-  }
-
-  // 7. Render Subviews Portal Sekretaris
-  const subnavLinks = document.querySelectorAll('.subnav-link');
-  subnavLinks.forEach(link => {
+  // Subnav Sekretaris
+  document.querySelectorAll('.subnav-link').forEach(link => {
     link.addEventListener('click', () => {
-      subnavLinks.forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.subnav-link').forEach(l => l.classList.remove('active'));
       link.classList.add('active');
       state.activeSubView = link.getAttribute('data-subview');
       renderActiveSecretaryView();
@@ -495,211 +322,117 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function renderActiveSecretaryView() {
-    const subviewAbsensi = document.getElementById('subviewAbsensi');
-    const subviewAnggota = document.getElementById('subviewAnggota');
-    const subviewRekap = document.getElementById('subviewRekap');
-
-    if (subviewAbsensi) subviewAbsensi.style.display = 'none';
-    if (subviewAnggota) subviewAnggota.style.display = 'none';
-    if (subviewRekap) subviewRekap.style.display = 'none';
-
+    ['subviewAbsensi', 'subviewAnggota', 'subviewRekap'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
     if (state.activeSubView === 'absensi') {
-      if (subviewAbsensi) subviewAbsensi.style.display = 'block';
+      document.getElementById('subviewAbsensi').style.display = 'block';
       renderAbsensiTable();
     } else if (state.activeSubView === 'anggota') {
-      if (subviewAnggota) subviewAnggota.style.display = 'block';
+      document.getElementById('subviewAnggota').style.display = 'block';
       renderAnggotaTable();
     } else if (state.activeSubView === 'rekap') {
-      if (subviewRekap) subviewRekap.style.display = 'block';
+      document.getElementById('subviewRekap').style.display = 'block';
       renderRekapTable();
     }
   }
 
-  // Render Tabel Absensi
   function renderAbsensiTable() {
     const tbody = document.getElementById('absensiTableBody');
-    const countEl = document.getElementById('absensiCountText');
     if (!tbody) return;
-
     const list = getStoredAttendance();
-    tbody.innerHTML = '';
-    if (countEl) countEl.textContent = `Menampilkan ${list.length} catatan kehadiran`;
-
-    if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Belum ada data absensi.</td></tr>`;
-      return;
-    }
-
+    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data absensi.</td></tr>` : '';
     list.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="white-space: nowrap;">
-          <div style="font-weight: 600; font-size: 0.86rem;">${item.waktu}</div>
-          <div style="font-size: 0.76rem; color: var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div>
-        </td>
-        <td><strong>${item.nama}</strong></td>
-        <td>${item.kelas} • ${item.jurusanRombel}</td>
-        <td>${item.divisi}</td>
-        <td>${item.tandaTangan ? `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">` : '-'}</td>
-        <td style="text-align: right;"><button type="button" class="btn-action-table">Detail</button></td>
-      `;
-      tbody.appendChild(tr);
+      tbody.innerHTML += `
+        <tr>
+          <td><div><strong>${item.waktu}</strong></div><div style="font-size:0.75rem; color:var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div></td>
+          <td><strong>${item.nama}</strong></td>
+          <td>Kelas ${item.kelas} - ${item.jurusan}</td>
+          <td>${item.divisi}</td>
+          <td>${item.tandaTangan ? `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">` : '-'}</td>
+        </tr>`;
     });
   }
 
-  // Render Tabel Anggota
   function renderAnggotaTable() {
     const tbody = document.getElementById('anggotaTableBody');
-    const countEl = document.getElementById('anggotaCountText');
     if (!tbody) return;
-
     const list = getStoredMembers();
-    tbody.innerHTML = '';
-    if (countEl) countEl.textContent = `Menampilkan ${list.length} anggota resmi`;
-
-    if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-table-state">Belum ada data anggota.</td></tr>`;
-      return;
-    }
-
+    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="4" class="empty-table-state">Belum ada data anggota.</td></tr>` : '';
     list.forEach((m, idx) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
-        <td><strong>${m.nama}</strong></td>
-        <td>${m.kelas}</td>
-        <td>${m.jurusanRombel}</td>
-        <td>${m.divisi}</td>
-      `;
-      tbody.appendChild(tr);
+      tbody.innerHTML += `
+        <tr>
+          <td style="color:var(--text-muted);">${idx + 1}</td>
+          <td><strong>${m.nama}</strong></td>
+          <td>Kelas ${m.kelas} - ${m.jurusan}</td>
+          <td>${m.divisi}</td>
+        </tr>`;
     });
   }
 
-  // Render Tabel Rekap
   function renderRekapTable() {
     const tbody = document.getElementById('rekapTableBody');
-    const countEl = document.getElementById('rekapCountText');
     if (!tbody) return;
-
     const members = getStoredMembers();
     const attendance = getStoredAttendance();
     tbody.innerHTML = '';
-    if (countEl) countEl.textContent = `Rekapitulasi ${members.length} anggota PMR`;
-
     members.forEach((m, idx) => {
-      const records = attendance.filter(a => a.memberId === m.id || a.nama === m.nama);
-      const total = records.length;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
-        <td><strong>${m.nama}</strong></td>
-        <td>${m.kelas} • ${m.jurusanRombel}</td>
-        <td>${m.divisi}</td>
-        <td style="text-align: center; font-weight: 700; color: var(--pmr-red);">${total}</td>
-        <td><span class="status-pill status-aktif">${total > 0 ? 'Aktif' : 'Belum Absen'}</span></td>
-      `;
-      tbody.appendChild(tr);
+      const total = attendance.filter(a => a.memberId === m.id || a.nama === m.nama).length;
+      tbody.innerHTML += `
+        <tr>
+          <td style="color:var(--text-muted);">${idx + 1}</td>
+          <td><strong>${m.nama}</strong></td>
+          <td>Kelas ${m.kelas} - ${m.jurusan}</td>
+          <td>${m.divisi}</td>
+          <td style="text-align:center; font-weight:700; color:var(--pmr-red);">${total}</td>
+          <td><span class="status-pill status-aktif">${total > 0 ? 'Aktif' : 'Belum Absen'}</span></td>
+        </tr>`;
     });
   }
 
-  // 8. Modal Tambah Anggota (Event Delegation Aman)
-  const addMemberModal = document.getElementById('addMemberModal');
-  const addMemberModalCloseBtn = document.getElementById('addMemberModalCloseBtn');
-  const addMemberModalCancelBtn = document.getElementById('addMemberModalCancelBtn');
-  const addMemberForm = document.getElementById('addMemberForm');
-  const newMemberNama = document.getElementById('newMemberNama');
-  const newMemberNamaError = document.getElementById('newMemberNamaError');
-  const addMemberSuccessToast = document.getElementById('addMemberSuccessToast');
-  const addMemberSuccessToastText = document.getElementById('addMemberSuccessToastText');
-
-  function openAddMemberModal() {
-    if (!addMemberModal) return;
-    if (newMemberNama) newMemberNama.value = '';
-    if (newMemberNamaError) newMemberNamaError.style.display = 'none';
-
-    addMemberModal.classList.add('show');
-    setTimeout(() => {
-      if (newMemberNama) newMemberNama.focus();
-    }, 100);
-  }
-
-  function closeAddMemberModal() {
-    if (addMemberModal) addMemberModal.classList.remove('show');
-  }
-
+  // Modal Tambah Anggota
+  const addModal = document.getElementById('addMemberModal');
   document.addEventListener('click', (e) => {
-    const targetBtn = e.target.closest('#openAddMemberModalBtn, #headerAddMemberBtn, #absensiAddMemberPromptBtn');
-    if (targetBtn) {
+    if (e.target.closest('#openAddMemberModalBtn, #headerAddMemberBtn, #autocompleteAddMemberBtn')) {
       e.preventDefault();
-      openAddMemberModal();
+      addModal.classList.add('show');
     }
   });
 
-  if (addMemberModalCloseBtn) addMemberModalCloseBtn.addEventListener('click', closeAddMemberModal);
-  if (addMemberModalCancelBtn) addMemberModalCancelBtn.addEventListener('click', closeAddMemberModal);
+  document.getElementById('addMemberModalCloseBtn')?.addEventListener('click', () => addModal.classList.remove('show'));
+  document.getElementById('addMemberModalCancelBtn')?.addEventListener('click', () => addModal.classList.remove('show'));
 
-  if (addMemberForm) {
-    addMemberForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  document.getElementById('addMemberForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const namaVal = document.getElementById('newMemberNama').value.trim();
+    if (!namaVal) {
+      document.getElementById('newMemberNamaError').style.display = 'block';
+      return;
+    }
 
-      const namaVal = newMemberNama.value.trim();
-      if (!namaVal) {
-        if (newMemberNamaError) newMemberNamaError.style.display = 'block';
-        newMemberNama.focus();
-        return;
-      }
+    const kelasVal = document.getElementById('newMemberKelas').value;
+    const jurusanVal = document.getElementById('newMemberJurusan').value;
+    const divisiVal = document.getElementById('newMemberDivisi').value;
 
-      const kelasVal = document.getElementById('newMemberKelas') ? document.getElementById('newMemberKelas').value : 'X';
-      const jurusanRombelVal = document.getElementById('newMemberJurusanRombel') ? document.getElementById('newMemberJurusanRombel').value : 'PPLG - X PPLG 1';
-      const divisiVal = document.getElementById('newMemberDivisi') ? document.getElementById('newMemberDivisi').value : 'Litbang Jaya';
+    const client = getSupabaseClient();
+    let { error } = await client.from('tb_anggota').insert([{
+      nama: namaVal,
+      kelas: kelasVal,
+      jurusan: jurusanVal,
+      divisi: divisiVal
+    }]);
 
-      const submitBtn = document.getElementById('saveMemberSubmitBtn');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Menyimpan...';
-      }
+    if (!error) {
+      await fetchMembersOnline();
+      addModal.classList.remove('show');
+      renderAnggotaTable();
+      renderRekapTable();
+      alert(`Anggota "${namaVal}" berhasil disimpan!`);
+    } else {
+      alert("Gagal menyimpan: " + error.message);
+    }
+  });
 
-      try {
-        const client = getSupabaseClient();
-        if (!client) {
-          alert("Gagal terhubung ke Supabase.");
-          return;
-        }
-
-        let { error } = await client.from('tb_anggota').insert([{
-          nama: namaVal,
-          kelas: kelasVal,
-          jurusan_rombel: jurusanRombelVal,
-          divisi: divisiVal
-        }]);
-
-        if (!error) {
-          await fetchMembersOnline();
-          closeAddMemberModal();
-          renderAnggotaTable();
-          renderRekapTable();
-
-          if (addMemberSuccessToast && addMemberSuccessToastText) {
-            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" berhasil disimpan ke database.`;
-            addMemberSuccessToast.style.display = 'block';
-            setTimeout(() => { addMemberSuccessToast.style.display = 'none'; }, 5000);
-          }
-        } else {
-          alert("Gagal menyimpan anggota: " + error.message);
-        }
-      } catch (err) {
-        console.error("Kesalahan jaringan:", err);
-        alert("Gagal menyimpan data.");
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Simpan Anggota ke Database';
-        }
-      }
-    });
-  }
-
-  // 9. Inisialisasi Aplikasi saat Pertama Kali Dibuka
   async function initApp() {
     await fetchMembersOnline();
     await fetchAttendanceOnline();

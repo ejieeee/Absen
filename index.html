@@ -60,7 +60,7 @@
       <!-- State: Form Aktif -->
       <form id="attendanceForm" class="form-card" novalidate>
         
-        <!-- 1. Input Pencarian Nama Anggota (Fokus Utama Autocomplete) -->
+        <!-- 1. Input Pencarian Nama Anggota -->
         <div class="form-group">
           <label for="memberSearchInput" class="form-label">
             Nama Anggota <span class="required-indicator">*</span>
@@ -76,7 +76,7 @@
             >
             <button type="button" id="clearSearchBtn" class="search-clear-btn" title="Hapus pencarian">&times;</button>
           </div>
-          <div class="form-hint">Ketik minimal 1 huruf untuk mencari data Anda dari daftar anggota.</div>
+          <div class="form-hint">Ketik nama untuk mencari data Anda dari daftar anggota.</div>
 
           <!-- Dropdown Autocomplete Hasil Pencarian -->
           <div id="autocompleteDropdown" class="autocomplete-dropdown" role="listbox" aria-label="Hasil Pencarian Anggota"></div>
@@ -91,14 +91,10 @@
             <div id="selectedMemberName" class="member-selected-name">-</div>
             <button type="button" id="changeMemberBtn" class="member-selected-reset">Ganti Anggota</button>
           </div>
-          <div class="member-info-grid">
+          <div class="member-info-grid" style="grid-template-columns: 1fr 1fr;">
             <div class="member-info-item">
-              <span class="member-info-label">Kelas & Rombel</span>
+              <span class="member-info-label">Kelas & Jurusan</span>
               <span id="selectedMemberClass" class="member-info-value">-</span>
-            </div>
-            <div class="member-info-item">
-              <span class="member-info-label">Jurusan</span>
-              <span id="selectedMemberMajor" class="member-info-value">-</span>
             </div>
             <div class="member-info-item">
               <span class="member-info-label">Divisi PMR</span>
@@ -107,7 +103,7 @@
           </div>
         </div>
 
-        <!-- 4. Tanggal & Waktu Otomatis -->
+        <!-- 3. Tanggal & Waktu Otomatis -->
         <div class="form-group">
           <label class="form-label">Waktu Presensi (Otomatis)</label>
           <div class="datetime-display-box">
@@ -119,7 +115,7 @@
           </div>
         </div>
 
-        <!-- 5. Area Tanda Tangan Digital -->
+        <!-- 4. Area Tanda Tangan Digital -->
         <div class="form-group">
           <label class="form-label">
             Tanda Tangan <span class="required-indicator">*</span>
@@ -136,7 +132,7 @@
           </div>
         </div>
 
-        <!-- 6. Tombol Kirim Absensi -->
+        <!-- 5. Tombol Kirim Absensi -->
         <div class="form-actions">
           <button type="submit" id="submitAttendanceBtn" class="btn-primary">
             Kirim Absensi
@@ -154,9 +150,7 @@
         <h2 class="success-title">Kehadiran Berhasil Dicatat</h2>
         <p class="success-desc">Data absensi Anda telah tercatat dalam sistem organisasi PMR Wira SMK Negeri 7 Samarinda.</p>
         
-        <div class="success-summary-box" id="successSummaryBox">
-          <!-- Ringkasan terisi secara dinamis -->
-        </div>
+        <div class="success-summary-box" id="successSummaryBox"></div>
 
         <button type="button" id="resetFormBtn" class="btn-secondary" style="width: 100%;">
           Catat Absensi Anggota Lain
@@ -207,27 +201,14 @@
       <!-- Sub-View: Halaman Utama Sekretaris Setelah Login -->
       <div id="secretaryMainView" style="display: none;">
         
-        <!-- Header Panel Sekretaris -->
         <div class="admin-section-header">
           <div class="admin-title-group">
             <h2 id="secretarySectionTitle">Absensi Anggota</h2>
             <p id="secretarySectionSubtitle">Daftar catatan kehadiran latihan rutin, piket UKS, dan tugas PMR</p>
           </div>
           <div class="admin-header-actions">
-            <button type="button" id="headerAddMemberBtn" class="btn-primary" style="font-size: 0.84rem; padding: 7px 14px; width: auto;" title="Tambahkan data anggota baru yang belum ada secara manual">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Tambah Anggota
-            </button>
-            <button type="button" id="exportCsvBtn" class="btn-secondary" title="Unduh data dalam format CSV untuk Excel">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Ekspor Data (CSV)
+            <button type="button" id="headerAddMemberBtn" class="btn-primary" style="font-size: 0.84rem; padding: 7px 14px; width: auto;" title="Tambahkan data anggota baru">
+              + Tambah Anggota
             </button>
             <button type="button" id="secLogoutBtn" class="btn-secondary btn-danger" title="Keluar dari sesi sekretaris">
               Keluar
@@ -235,7 +216,6 @@
           </div>
         </div>
 
-        <!-- Navigasi 3 Bagian Utama Sekretaris -->
         <nav class="secretary-subnav" aria-label="Navigasi Sekretariat">
           <button type="button" class="subnav-link active" data-subview="absensi">Absensi</button>
           <button type="button" class="subnav-link" data-subview="anggota">Data Anggota</button>
@@ -244,267 +224,56 @@
 
         <!-- SUB-PAGE 1: TABEL ABSENSI -->
         <div id="subviewAbsensi" class="secretary-subcontent">
-          
-          <!-- Filter Bar Absensi -->
-          <div class="filter-bar">
-            <div class="filter-grid">
-              <!-- Cari Nama -->
-              <div class="filter-item">
-                <label for="filterAbsensiNama" class="filter-label">Cari Nama</label>
-                <input type="text" id="filterAbsensiNama" class="filter-input" placeholder="Ketik nama...">
-              </div>
-
-              <!-- Filter Tanggal -->
-              <div class="filter-item">
-                <label for="filterAbsensiTanggal" class="filter-label">Tanggal</label>
-                <select id="filterAbsensiTanggal" class="filter-select">
-                  <option value="all">Semua Tanggal</option>
-                  <option value="today">Hari Ini</option>
-                  <option value="7days">7 Hari Terakhir</option>
-                  <option value="month">Bulan Ini</option>
-                </select>
-              </div>
-
-              <!-- Filter Tingkat Kelas (X / XI) -->
-              <div class="filter-item">
-                <label for="filterAbsensiTingkat" class="filter-label">Tingkat Kelas</label>
-                <select id="filterAbsensiTingkat" class="filter-select">
-                  <option value="all">Semua Tingkat</option>
-                  <option value="X">Kelas X</option>
-                  <option value="XI">Kelas XI</option>
-                </select>
-              </div>
-
-              <!-- Filter Jurusan -->
-              <div class="filter-item">
-                <label for="filterAbsensiJurusan" class="filter-label">Jurusan</label>
-                <select id="filterAbsensiJurusan" class="filter-select">
-                  <option value="all">Semua Jurusan</option>
-                  <option value="PPLG">PPLG</option>
-                  <option value="TJKT">TJKT</option>
-                  <option value="DKV">DKV</option>
-                  <option value="Animasi">Animasi</option>
-                </select>
-              </div>
-
-              <!-- Filter Rombel (16 Rombel Spesifik) -->
-              <div class="filter-item">
-                <label for="filterAbsensiRombel" class="filter-label">Rombel</label>
-                <select id="filterAbsensiRombel" class="filter-select">
-                  <option value="all">Semua Rombel</option>
-                  <!-- Diisi secara dinamis -->
-                </select>
-              </div>
-
-              <!-- Filter Divisi -->
-              <div class="filter-item">
-                <label for="filterAbsensiDivisi" class="filter-label">Divisi</label>
-                <select id="filterAbsensiDivisi" class="filter-select">
-                  <option value="all">Semua Divisi</option>
-                  <!-- Diisi secara dinamis -->
-                </select>
-              </div>
-
-              <!-- Filter Kegiatan -->
-              <div class="filter-item">
-                <label for="filterAbsensiKegiatan" class="filter-label">Jenis Kegiatan</label>
-                <select id="filterAbsensiKegiatan" class="filter-select">
-                  <option value="all">Semua Kegiatan</option>
-                  <!-- Diisi secara dinamis -->
-                </select>
-              </div>
-            </div>
-
-            <div class="filter-bar-footer">
-              <span id="absensiCountText">Menampilkan 0 catatan</span>
-              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <button type="button" id="absensiAddMemberPromptBtn" class="filter-reset-link" style="color: var(--pmr-red); font-weight: 600;">+ Tambah Anggota Belum Ada</button>
-                <button type="button" id="resetFilterAbsensiBtn" class="filter-reset-link">Reset Filter</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabel Absensi -->
           <div class="table-container">
             <table class="data-table" id="absensiTable">
               <thead>
                 <tr>
                   <th>Waktu Presensi</th>
                   <th>Nama Anggota</th>
-                  <th>Kelas & Rombel</th>
+                  <th>Kelas & Jurusan</th>
                   <th>Divisi</th>
                   <th>Tanda Tangan</th>
-                  <th style="text-align: right;">Aksi</th>
                 </tr>
               </thead>
-              <tbody id="absensiTableBody">
-                <!-- Baris tabel absensi dimuat via JS -->
-              </tbody>
+              <tbody id="absensiTableBody"></tbody>
             </table>
           </div>
-
         </div>
 
         <!-- SUB-PAGE 2: DATA ANGGOTA -->
         <div id="subviewAnggota" class="secretary-subcontent" style="display: none;">
-          
-          <!-- Filter Data Anggota -->
-          <div class="filter-bar">
-            <div class="filter-grid">
-              <div class="filter-item">
-                <label for="filterAnggotaNama" class="filter-label">Cari Nama Anggota</label>
-                <input type="text" id="filterAnggotaNama" class="filter-input" placeholder="Cari nama...">
-              </div>
-
-              <div class="filter-item">
-                <label for="filterAnggotaTingkat" class="filter-label">Tingkat</label>
-                <select id="filterAnggotaTingkat" class="filter-select">
-                  <option value="all">Semua Tingkat</option>
-                  <option value="X">Kelas X</option>
-                  <option value="XI">Kelas XI</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterAnggotaJurusan" class="filter-label">Jurusan</label>
-                <select id="filterAnggotaJurusan" class="filter-select">
-                  <option value="all">Semua Jurusan</option>
-                  <option value="PPLG">PPLG</option>
-                  <option value="TJKT">TJKT</option>
-                  <option value="DKV">DKV</option>
-                  <option value="Animasi">Animasi</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterAnggotaRombel" class="filter-label">Rombel</label>
-                <select id="filterAnggotaRombel" class="filter-select">
-                  <option value="all">Semua Rombel</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterAnggotaDivisi" class="filter-label">Divisi</label>
-                <select id="filterAnggotaDivisi" class="filter-select">
-                  <option value="all">Semua Divisi</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="filter-bar-footer">
-              <span id="anggotaCountText">Menampilkan 0 anggota</span>
-              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <button type="button" id="resetFilterAnggotaBtn" class="filter-reset-link">Reset Filter</button>
-                <button type="button" id="openAddMemberModalBtn" class="btn-primary" style="font-size: 0.82rem; padding: 6px 14px; width: auto;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  Tambah Anggota
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Alert Notifikasi Tambah Anggota Berhasil -->
-          <div id="addMemberSuccessToast" style="display: none; margin-bottom: 14px; padding: 10px 14px; background-color: var(--status-active-bg); border: 1px solid var(--status-active-border); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--status-active-text);">
-            <strong>Berhasil disimpan:</strong> <span id="addMemberSuccessToastText">Anggota baru berhasil disimpan ke database.</span>
-          </div>
-
-          <!-- Tabel Anggota -->
           <div class="table-container">
             <table class="data-table" id="anggotaTable">
               <thead>
                 <tr>
                   <th style="width: 48px;">No</th>
                   <th>Nama Lengkap</th>
-                  <th>Kelas & Rombel</th>
-                  <th>Jurusan</th>
+                  <th>Kelas & Jurusan</th>
                   <th>Divisi</th>
-                  <th>Status Keanggotaan</th>
                 </tr>
               </thead>
-              <tbody id="anggotaTableBody">
-                <!-- Baris tabel data anggota dimuat via JS -->
-              </tbody>
+              <tbody id="anggotaTableBody"></tbody>
             </table>
           </div>
-
         </div>
 
-        <!-- SUB-PAGE 3: REKAP KEHADIRAN (NO CHARTS) -->
+        <!-- SUB-PAGE 3: REKAP KEHADIRAN -->
         <div id="subviewRekap" class="secretary-subcontent" style="display: none;">
-          
-          <!-- Filter Bar Rekap -->
-          <div class="filter-bar">
-            <div class="filter-grid">
-              <div class="filter-item">
-                <label for="filterRekapPeriode" class="filter-label">Periode</label>
-                <select id="filterRekapPeriode" class="filter-select">
-                  <option value="all">Semua Catatan</option>
-                  <option value="month">Bulan Ini (Oktober 2026)</option>
-                  <option value="semester">Semester Ganjil 2026/2027</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterRekapTingkat" class="filter-label">Tingkat</label>
-                <select id="filterRekapTingkat" class="filter-select">
-                  <option value="all">Semua Tingkat</option>
-                  <option value="X">Kelas X</option>
-                  <option value="XI">Kelas XI</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterRekapJurusan" class="filter-label">Jurusan</label>
-                <select id="filterRekapJurusan" class="filter-select">
-                  <option value="all">Semua Jurusan</option>
-                  <option value="PPLG">PPLG</option>
-                  <option value="TJKT">TJKT</option>
-                  <option value="DKV">DKV</option>
-                  <option value="Animasi">Animasi</option>
-                </select>
-              </div>
-
-              <div class="filter-item">
-                <label for="filterRekapDivisi" class="filter-label">Divisi</label>
-                <select id="filterRekapDivisi" class="filter-select">
-                  <option value="all">Semua Divisi</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="filter-bar-footer">
-              <span id="rekapCountText">Rekapitulasi keaktifan per anggota</span>
-              <button type="button" id="exportRekapCsvBtn" class="btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">
-                Ekspor Rekap (CSV)
-              </button>
-            </div>
-          </div>
-
-          <!-- Tabel Rekapitulasi -->
           <div class="table-container">
             <table class="data-table" id="rekapTable">
               <thead>
                 <tr>
                   <th style="width: 48px;">No</th>
                   <th>Nama Anggota</th>
-                  <th>Kelas</th>
+                  <th>Kelas & Jurusan</th>
                   <th>Divisi</th>
-                  <th style="text-align: center;">Latihan Rutin</th>
-                  <th style="text-align: center;">Piket UKS</th>
-                  <th style="text-align: center;">Tugas Lain</th>
                   <th style="text-align: center;">Total Kehadiran</th>
                   <th>Status Keaktifan</th>
                 </tr>
               </thead>
-              <tbody id="rekapTableBody">
-                <!-- Baris rekap dimuat via JS -->
-              </tbody>
+              <tbody id="rekapTableBody"></tbody>
             </table>
           </div>
-
         </div>
 
       </div>
@@ -514,61 +283,7 @@
   </main>
 
   <!-- =========================================================================
-       MODAL 1: KONFIRMASI RINGKASAN SEBELUM KIRIM
-       ========================================================================= -->
-  <div id="confirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 id="confirmModalTitle" class="modal-title">Konfirmasi Pengisian Absensi</h3>
-        <button type="button" class="modal-close-btn" id="confirmModalCloseBtn" aria-label="Tutup modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 14px;">
-          Mohon periksa kembali rincian kehadiran Anda sebelum dikirimkan ke sekretariat.
-        </p>
-        <div class="success-summary-box" id="confirmModalContent">
-          <!-- Diisi via JS -->
-        </div>
-        <div class="modal-signature-preview">
-          <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
-            Pratinjau Tanda Tangan
-          </div>
-          <img id="confirmModalSignatureImg" src="" alt="Tanda Tangan Anggota">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="confirmModalCancelBtn" class="btn-secondary">
-          Periksa Kembali
-        </button>
-        <button type="button" id="confirmModalProceedBtn" class="btn-primary" style="width: auto;">
-          Kirim Sekarang
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       MODAL 2: DETAIL CATATAN ABSENSI (PORTAL SEKRETARIS)
-       ========================================================================= -->
-  <div id="detailModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 id="detailModalTitle" class="modal-title">Rincian Presensi Anggota</h3>
-        <button type="button" class="modal-close-btn" id="detailModalCloseBtn" aria-label="Tutup modal">&times;</button>
-      </div>
-      <div class="modal-body" id="detailModalBody">
-        <!-- Konten detail dimuat via JS -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="detailModalCloseFooterBtn" class="btn-secondary">
-          Tutup
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       MODAL 3: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
+       MODAL: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
        ========================================================================= -->
   <div id="addMemberModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addMemberModalTitle">
     <div class="modal-dialog">
@@ -592,10 +307,10 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="form-group">
-              <label for="newMemberTingkat" class="form-label">
+              <label for="newMemberKelas" class="form-label">
                 Tingkat Kelas <span class="required-indicator">*</span>
               </label>
-              <select id="newMemberTingkat" class="form-select" required>
+              <select id="newMemberKelas" class="form-select" required>
                 <option value="X">Kelas X</option>
                 <option value="XI">Kelas XI</option>
               </select>
@@ -603,25 +318,19 @@
 
             <div class="form-group">
               <label for="newMemberJurusan" class="form-label">
-                Jurusan <span class="required-indicator">*</span>
+                Jurusan / Rombel <span class="required-indicator">*</span>
               </label>
               <select id="newMemberJurusan" class="form-select" required>
-                <option value="PPLG">PPLG</option>
-                <option value="TJKT">TJKT</option>
-                <option value="DKV">DKV</option>
+                <option value="PPLG 1">PPLG 1</option>
+                <option value="PPLG 2">PPLG 2</option>
+                <option value="TJKT 1">TJKT 1</option>
+                <option value="TJKT 2">TJKT 2</option>
+                <option value="TJKT 3">TJKT 3</option>
+                <option value="DKV 1">DKV 1</option>
+                <option value="DKV 2">DKV 2</option>
                 <option value="Animasi">Animasi</option>
               </select>
             </div>
-          </div>
-
-          <div class="form-group">
-            <label for="newMemberRombel" class="form-label">
-              Rombongan Belajar (Rombel) <span class="required-indicator">*</span>
-            </label>
-            <select id="newMemberRombel" class="form-select" required>
-              <!-- Pilihan terfilter secara dinamis via JS -->
-            </select>
-            <div class="form-hint">Daftar rombel disesuaikan dengan tingkat dan jurusan yang dipilih.</div>
           </div>
 
           <div class="form-group">
@@ -629,21 +338,9 @@
               Divisi PMR <span class="required-indicator">*</span>
             </label>
             <select id="newMemberDivisi" class="form-select" required>
-              <!-- Diisi dari DIVISI_LIST via JS -->
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="newMemberStatus" class="form-label">
-              Status Keanggotaan <span class="required-indicator">*</span>
-            </label>
-            <select id="newMemberStatus" class="form-select" required>
-              <option value="Calon Anggota">Calon Anggota</option>
-              <option value="Anggota Wira" selected>Anggota Wira</option>
-              <option value="Pengurus (Ketua)">Pengurus (Ketua)</option>
-              <option value="Pengurus (Sekretaris)">Pengurus (Sekretaris)</option>
-              <option value="Pengurus (Koord. Divisi)">Pengurus (Koord. Divisi)</option>
-              <option value="Pengurus (Humas)">Pengurus (Humas)</option>
+              <option value="Litbang Jaya">Litbang Jaya</option>
+              <option value="Kebersihan">Kebersihan</option>
+              <option value="PDD">PDD</option>
             </select>
           </div>
         </div>
@@ -660,9 +357,7 @@
     </div>
   </div>
 
-  <!-- =========================================================================
-       FOOTER MINIMAL ORGANISASI
-       ========================================================================= -->
+  <!-- FOOTER -->
   <footer class="site-footer">
     <div class="footer-container">
       <div>
@@ -675,24 +370,10 @@
   </footer>
 
   <!-- SCRIPT MODULAR -->
-  <!-- SCRIPT MODULAR -->
- <!-- 1. Pustaka Resmi Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- 2. Konstanta Referensi Data -->
   <script src="js/constants.js"></script>
-
-  <!-- 3. Konfigurasi Client Supabase (Wajib di atas app.js) -->
   <script src="js/supabase-config.js"></script>
-
-  <!-- 4. Pustaka Canvas Tanda Tangan -->
   <script src="js/signature.js"></script>
-
-  <!-- 5. Logika Utama Aplikasi -->
   <script src="js/app.js"></script>
-</body>
-</html>
-</body>
-</html>
 </body>
 </html>

@@ -1,23 +1,17 @@
 /**
- * constants.js - Referensi PMR SMKN 7 Samarinda (Divisi & Rombel Gabungan)
+ * constants.js - Referensi PMR SMKN 7 Samarinda (Divisi & Jurusan)
  */
 const DIVISI_LIST = ['Litbang Jaya', 'Kebersihan', 'PDD'];
 
-const ROMBEL_JURUSAN_LIST = [
-  { id: 'PPLG - X PPLG 1', label: 'X PPLG 1 (PPLG)', kelas: 'X', jurusan: 'PPLG' },
-  { id: 'PPLG - X PPLG 2', label: 'X PPLG 2 (PPLG)', kelas: 'X', jurusan: 'PPLG' },
-  { id: 'PPLG - XI PPLG 1', label: 'XI PPLG 1 (PPLG)', kelas: 'XI', jurusan: 'PPLG' },
-  { id: 'PPLG - XI PPLG 2', label: 'XI PPLG 2 (PPLG)', kelas: 'XI', jurusan: 'PPLG' },
-  { id: 'TJKT - X TJKT 1', label: 'X TJKT 1 (TJKT)', kelas: 'X', jurusan: 'TJKT' },
-  { id: 'TJKT - X TJKT 2', label: 'X TJKT 2 (TJKT)', kelas: 'X', jurusan: 'TJKT' },
-  { id: 'TJKT - XI TJKT 1', label: 'XI TJKT 1 (TJKT)', kelas: 'XI', jurusan: 'TJKT' },
-  { id: 'TJKT - XI TJKT 2', label: 'XI TJKT 2 (TJKT)', kelas: 'XI', jurusan: 'TJKT' },
-  { id: 'DKV - X DKV 1', label: 'X DKV 1 (DKV)', kelas: 'X', jurusan: 'DKV' },
-  { id: 'DKV - X DKV 2', label: 'X DKV 2 (DKV)', kelas: 'X', jurusan: 'DKV' },
-  { id: 'DKV - XI DKV 1', label: 'XI DKV 1 (DKV)', kelas: 'XI', jurusan: 'DKV' },
-  { id: 'DKV - XI DKV 2', label: 'XI DKV 2 (DKV)', kelas: 'XI', jurusan: 'DKV' },
-  { id: 'Animasi - X Animasi', label: 'X Animasi (Animasi)', kelas: 'X', jurusan: 'Animasi' },
-  { id: 'Animasi - XI Animasi', label: 'XI Animasi (Animasi)', kelas: 'XI', jurusan: 'Animasi' }
+const JURUSAN_LIST = [
+  'PPLG 1',
+  'PPLG 2',
+  'TJKT 1',
+  'TJKT 2',
+  'TJKT 3',
+  'DKV 1',
+  'DKV 2',
+  'Animasi'
 ];
 
 function formatTanggalIndo(dateStr) {
