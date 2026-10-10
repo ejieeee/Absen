@@ -67,22 +67,20 @@ if ($action == 'add_anggota' && $method == 'POST') {
     exit();
 }
 
-// 4. KIRIM ABSENSI BARU (DENGAN TANGGAL OTOMATIS & TANDA TANGAN BASE64)
+// 4. KIRIM ABSENSI BARU (TANPA JENIS KEGIATAN)
 if ($action == 'add_absensi' && $method == 'POST') {
     $input = json_decode(file_get_contents("php://input"), true);
     
     $member_id      = intval($input['member_id'] ?? 0);
-    $jenis_kegiatan = $conn->real_escape_string($input['jenis_kegiatan'] ?? '');
     $signature_data = $conn->real_escape_string($input['signature_data'] ?? '');
 
-    if ($member_id <= 0 || empty($jenis_kegiatan) || empty($signature_data)) {
-        echo json_encode(["status" => "error", "message" => "Data absensi tidak lengkap!"]);
+    if ($member_id <= 0 || empty($signature_data)) {
+        echo json_encode(["status" => "error", "message" => "Data absensi atau tanda tangan tidak lengkap!"]);
         exit();
     }
 
-    // Menggunakan NOW() agar tanggal & waktu otomatis dari server (tidak bisa dimanipulasi)
-    $sql = "INSERT INTO tb_absensi (member_id, jenis_kegiatan, waktu_presensi, signature_data) 
-            VALUES ($member_id, '$jenis_kegiatan', NOW(), '$signature_data')";
+    $sql = "INSERT INTO tb_absensi (member_id, waktu_presensi, signature_data) 
+            VALUES ($member_id, NOW(), '$signature_data')";
     
     if ($conn->query($sql) === TRUE) {
         echo json_encode(["status" => "success", "message" => "Absensi berhasil dicatat!"]);
@@ -91,7 +89,6 @@ if ($action == 'add_absensi' && $method == 'POST') {
     }
     exit();
 }
-
 // 5. AMBIL DATA REKAP & RIWAYAT ABSENSI (UNTUK PORTAL SEKRETARIS)
 if ($action == 'get_absensi' && $method == 'GET') {
     $sql = "SELECT a.*, m.nama, m.tingkat, m.jurusan, m.rombel, m.divisi 

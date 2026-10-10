@@ -55,7 +55,6 @@
       <div class="page-lead">
         <div class="page-lead-meta">Sistem Kehadiran Mandiri</div>
         <h1 class="page-title">Absensi Latihan & Piket</h1>
-        <p class="page-desc">Silakan cari nama Anda untuk mencatat kehadiran kegiatan latihan rutin, piket ruang UKS, atau tugas pelayanan PMR.</p>
       </div>
 
       <!-- State: Form Aktif -->
@@ -108,17 +107,6 @@
           </div>
         </div>
 
-        <!-- 3. Pilihan Jenis Kegiatan -->
-        <div class="form-group">
-          <label class="form-label">
-            Jenis Kegiatan <span class="required-indicator">*</span>
-          </label>
-          <div class="activity-radio-group" id="activityRadioGroup">
-            <!-- Pilihan kegiatan dimuat secara terstruktur via JS -->
-          </div>
-          <div class="form-hint">Pilih kegiatan PMR yang sedang atau baru saja Anda ikuti.</div>
-        </div>
-
         <!-- 4. Tanggal & Waktu Otomatis -->
         <div class="form-group">
           <label class="form-label">Waktu Presensi (Otomatis)</label>
@@ -144,7 +132,7 @@
             </div>
           </div>
           <div id="signatureError" class="form-hint" style="color: var(--pmr-red); display: none;">
-            Silakan bubuhkan tanda tangan sebelum mengirim absensi.
+            Silakan tanda tangan sebelum mengirim absensi.
           </div>
         </div>
 
@@ -226,10 +214,6 @@
             <p id="secretarySectionSubtitle">Daftar catatan kehadiran latihan rutin, piket UKS, dan tugas PMR</p>
           </div>
           <div class="admin-header-actions">
-            <button type="button" id="openDbConfigBtn" class="btn-secondary" style="font-size: 0.82rem; padding: 7px 11px;" title="Status & Pengaturan Koneksi Database Cloud (Supabase)">
-              <span id="dbStatusDot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #71717A; margin-right: 5px;"></span>
-              <span id="dbStatusText">Database Lokal</span>
-            </button>
             <button type="button" id="headerAddMemberBtn" class="btn-primary" style="font-size: 0.84rem; padding: 7px 14px; width: auto;" title="Tambahkan data anggota baru yang belum ada secara manual">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -349,7 +333,6 @@
                   <th>Nama Anggota</th>
                   <th>Kelas & Rombel</th>
                   <th>Divisi</th>
-                  <th>Jenis Kegiatan</th>
                   <th>Tanda Tangan</th>
                   <th style="text-align: right;">Aksi</th>
                 </tr>
@@ -678,44 +661,6 @@
   </div>
 
   <!-- =========================================================================
-       MODAL 4: STATUS KONEKSI DATABASE MYSQL
-       ========================================================================= -->
-  <div id="dbConfigModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dbConfigModalTitle">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 id="dbConfigModalTitle" class="modal-title">Koneksi Database</h3>
-        <button type="button" class="modal-close-btn" id="dbConfigCloseBtn" aria-label="Tutup modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 14px;">
-          Aplikasi menyimpan anggota dan absensi ke MySQL melalui <code>api.php</code>. Buka halaman ini lewat XAMPP agar koneksi aktif.
-        </p>
-        <div class="success-summary-box">
-          <div class="summary-row">
-            <span class="summary-label">Status</span>
-            <span class="summary-val" id="dbConfigStatusLabel">Memeriksa...</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Host</span>
-            <span class="summary-val" id="dbConfigHostName">127.0.0.1</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Database</span>
-            <span class="summary-val" id="dbConfigDatabaseName">uks_pmr</span>
-          </div>
-        </div>
-        <p id="dbConfigStatusDetail" style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 12px;">
-          Menunggu pemeriksaan koneksi.
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="dbConfigCloseFooterBtn" class="btn-secondary">Tutup</button>
-        <button type="button" id="dbConfigTestBtn" class="btn-primary" style="width: auto;">Uji Koneksi Ulang</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
        FOOTER MINIMAL ORGANISASI
        ========================================================================= -->
   <footer class="site-footer">
@@ -730,7 +675,6 @@
   </footer>
 
   <!-- SCRIPT MODULAR -->
-  <script src="js/supabase-config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/signature.js"></script>
   <script src="js/app.js"></script>
