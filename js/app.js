@@ -408,8 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tandaTangan: state.signaturePad.toDataURL()
       };
 
-      // Simpan ke dataset
-      saveAttendanceRecord(newRecord);
+      // Simpan ke MySQL (dengan cadangan lokal)
+      insertAttendanceOnline(newRecord).then(() => {
+        renderAbsensiTable();
+        renderRekapTable();
+      });
 
       // Tampilkan State Sukses
       attendanceForm.style.display = 'none';
@@ -1249,8 +1252,11 @@ document.addEventListener('DOMContentLoaded', () => {
         status: statusVal
       };
 
-      // Simpan langsung ke database/localStorage
-      saveMemberRecord(newMember);
+      // Simpan langsung ke MySQL (dengan cadangan lokal)
+      insertMemberOnline(newMember).then(() => {
+        renderAnggotaTable();
+        renderRekapTable();
+      });
 
       closeAddMemberModal();
 
@@ -1272,12 +1278,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // =========================================================================
+  // STATUS & MODAL KONEKSI DATABASE MYSQL
+  // =========================================================================
+  const dbConfigModal = document.getElementById('dbConfigModal');
+  const openDbConfigBtn = document.getElementById('openDbConfigBtn');
+  const dbConfigCloseBtn = document.getElementById('dbConfigCloseBtn');
+  const dbConfigCloseFooterBtn = document.getElementById('dbConfigCloseFooterBtn');
+  const dbConfigTestBtn = document.getElementById('dbConfigTestBtn');
+
+  function updateDbStatusUi() {
+    const dot = document.getElementById('dbStatusDot');
+    const text = document.getElementById('dbStatusText');
+    const label = document.getElementById('dbConfigStatusLabel');
+    const detail = document.getElementById('dbConfigStatusDetail');
+    const dbNameEl = document.getElementById('dbConfigDatabaseName');
+    const hostEl = document.getElementById('dbConfigHostName');
+    const mode = typeof getDatabaseMode === 'function' ? getDatabaseMode() : 'local';
+    const statusLabel = typeof getDatabaseStatusLabel === 'function' ? getDatabaseStatusLabel() : 'Database Lokal';
+
+    if (text) text.textContent = statusLabel;
+    if (dot) {
+      if (mode === 'mysql') dot.style.backgroundColor = '#15803D';
+      else if (mode === 'supabase') dot.style.backgroundColor = '#1D4ED8';
+      else dot.style.backgroundColor = '#71717A';
+    }
+    if (label) label.textContent = statusLabel;
+    if (detail) {
+      detail.textContent = phpApiStatus && phpApiStatus.message
+        ? phpApiStatus.message
+        : 'Menunggu pemeriksaan koneksi.';
+    }
+    if (dbNameEl) dbNameEl.textContent = (phpApiStatus && phpApiStatus.database) || 'uks_pmr';
+    if (hostEl) hostEl.textContent = (phpApiStatus && phpApiStatus.host) || '127.0.0.1';
+  }
+
+  function openDbConfigModal() {
+    if (dbConfigModal) dbConfigModal.classList.add('show');
+    updateDbStatusUi();
+  }
+
+  function closeDbConfigModal() {
+    if (dbConfigModal) dbConfigModal.classList.remove('show');
+  }
+
+  if (openDbConfigBtn) openDbConfigBtn.addEventListener('click', openDbConfigModal);
+  if (dbConfigCloseBtn) dbConfigCloseBtn.addEventListener('click', closeDbConfigModal);
+  if (dbConfigCloseFooterBtn) dbConfigCloseFooterBtn.addEventListener('click', closeDbConfigModal);
+
+  if (dbConfigTestBtn) {
+    dbConfigTestBtn.addEventListener('click', async () => {
+      dbConfigTestBtn.disabled = true;
+      dbConfigTestBtn.textContent = 'Menguji...';
+      await checkPhpApi();
+      await fetchMembersOnline();
+      await fetchAttendanceOnline();
+      updateDbStatusUi();
+      renderAbsensiTable();
+      renderAnggotaTable();
+      renderRekapTable();
+      dbConfigTestBtn.disabled = false;
+      dbConfigTestBtn.textContent = 'Uji Koneksi Ulang';
+    });
+  }
+
+  async function hydrateDatabase() {
+    await checkPhpApi();
+    await fetchMembersOnline();
+    await fetchAttendanceOnline();
+    updateDbStatusUi();
+  }
+
+  hydrateDatabase();
+
   // Tutup Modal dengan tombol ESC
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeConfirmModal();
       closeDetailModal();
       closeAddMemberModal();
+      closeDbConfigModal();
     }
   });
 

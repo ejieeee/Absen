@@ -298,7 +298,10 @@ function saveMemberRecord(member) {
     const nextNum = current.length + 1;
     member.id = `M-${String(nextNum).padStart(2, '0')}`;
   }
-  const updated = [member, ...current];
+  const idx = current.findIndex(m => m.id === member.id);
+  const updated = idx >= 0
+    ? current.map((m, i) => (i === idx ? member : m))
+    : [member, ...current];
   try {
     localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(updated));
   } catch (e) {
@@ -324,7 +327,10 @@ function getStoredAttendance() {
 
 function saveAttendanceRecord(record) {
   const current = getStoredAttendance();
-  const updated = [record, ...current];
+  const idx = current.findIndex(item => item.id === record.id);
+  const updated = idx >= 0
+    ? current.map((item, i) => (i === idx ? record : item))
+    : [record, ...current];
   try {
     localStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(updated));
   } catch (e) {
@@ -334,72 +340,163 @@ function saveAttendanceRecord(record) {
 }
 
 // ============================================================================
-// SUPABASE ASYNCHRONOUS DATA WRAPPERS (ONLINE-FIRST DENGAN FALLBACK LOKAL)
+// MYSQL (PHP API) + SUPABASE — ONLINE-FIRST DENGAN FALLBACK LOKAL
 // ============================================================================
 
-async function fetchMembersOnline() {
-  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
-  if (!client) {
-    return getStoredMembers();
-  }
-  try {
-    const { data, error } = await client
-      .from('members')
-      .select('*')
-      .order('nama', { ascending: true });
+const PHP_API_ENDPOINT = 'api.php';
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(data));
-      } catch (e) {}
-      return data;
-    }
+let phpApiStatus = {
+  checked: false,
+  available: false,
+  message: 'Belum diperiksa',
+  database: '',
+  host: ''
+};
+
+function cacheList(storageKey, list) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(list));
+  } catch (e) {}
+}
+
+async function checkPhpApi() {
+  try {
+    const res = await fetch(`${PHP_API_ENDPOINT}?resource=health`, { cache: 'no-store' });
+    const json = await res.json();
+    phpApiStatus = {
+      checked: true,
+      available: Boolean(res.ok && json.ok),
+      message: json.ok ? `Terhubung ke MySQL (${json.data.database})` : (json.error || 'Koneksi ditolak'),
+      database: json.data && json.data.database ? json.data.database : '',
+      host: json.data && json.data.host ? json.data.host : ''
+    };
   } catch (err) {
-    console.warn('Gagal fetch data anggota dari Supabase, fallback ke lokal:', err);
+    phpApiStatus = {
+      checked: true,
+      available: false,
+      message: 'API PHP tidak tersedia. Buka aplikasi lewat XAMPP (http://localhost/UKS/), bukan berkas file://.',
+      database: '',
+      host: ''
+    };
+  }
+  return phpApiStatus;
+}
+
+function getDatabaseMode() {
+  if (phpApiStatus.available) return 'mysql';
+  if (typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) return 'supabase';
+  return 'local';
+}
+
+function getDatabaseStatusLabel() {
+  const mode = getDatabaseMode();
+  if (mode === 'mysql') return 'MySQL Terhubung';
+  if (mode === 'supabase') return 'Supabase Terhubung';
+  return 'Database Lokal';
+}
+
+async function fetchMembersOnline() {
+  const php = phpApiStatus.checked ? phpApiStatus : await checkPhpApi();
+  if (php.available) {
+    try {
+      const res = await fetch(`${PHP_API_ENDPOINT}?resource=members`, { cache: 'no-store' });
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
+        cacheList(STORAGE_KEY_MEMBERS, json.data);
+        return json.data;
+      }
+    } catch (err) {
+      console.warn('Gagal fetch anggota dari MySQL, fallback ke lokal:', err);
+    }
+  }
+
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('members')
+        .select('*')
+        .order('nama', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        cacheList(STORAGE_KEY_MEMBERS, data);
+        return data;
+      }
+    } catch (err) {
+      console.warn('Gagal fetch data anggota dari Supabase, fallback ke lokal:', err);
+    }
   }
   return getStoredMembers();
 }
 
 async function fetchAttendanceOnline() {
-  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
-  if (!client) {
-    return getStoredAttendance();
-  }
-  try {
-    const { data, error } = await client
-      .from('attendances')
-      .select('*')
-      .order('timestamp', { ascending: false });
-
-    if (!error && Array.isArray(data)) {
-      const mapped = data.map(d => ({
-        id: d.id,
-        memberId: d.member_id,
-        nama: d.nama,
-        kelas: d.kelas,
-        tingkat: d.tingkat,
-        jurusan: d.jurusan,
-        divisi: d.divisi,
-        jenisKegiatan: d.jenis_kegiatan,
-        tanggal: d.tanggal,
-        waktu: d.waktu,
-        timestamp: d.timestamp,
-        tandaTangan: d.tanda_tangan
-      }));
-
-      try {
-        localStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(mapped));
-      } catch (e) {}
-      return mapped;
+  const php = phpApiStatus.checked ? phpApiStatus : await checkPhpApi();
+  if (php.available) {
+    try {
+      const res = await fetch(`${PHP_API_ENDPOINT}?resource=attendances`, { cache: 'no-store' });
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data)) {
+        cacheList(STORAGE_KEY_ATTENDANCE, json.data);
+        return json.data;
+      }
+    } catch (err) {
+      console.warn('Gagal fetch presensi dari MySQL, fallback ke lokal:', err);
     }
-  } catch (err) {
-    console.warn('Gagal fetch presensi dari Supabase, fallback ke lokal:', err);
+  }
+
+  const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('attendances')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        const mapped = data.map(d => ({
+          id: d.id,
+          memberId: d.member_id,
+          nama: d.nama,
+          kelas: d.kelas,
+          tingkat: d.tingkat,
+          jurusan: d.jurusan,
+          divisi: d.divisi,
+          jenisKegiatan: d.jenis_kegiatan,
+          tanggal: d.tanggal,
+          waktu: d.waktu,
+          timestamp: d.timestamp,
+          tandaTangan: d.tanda_tangan
+        }));
+        cacheList(STORAGE_KEY_ATTENDANCE, mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.warn('Gagal fetch presensi dari Supabase, fallback ke lokal:', err);
+    }
   }
   return getStoredAttendance();
 }
 
 async function insertMemberOnline(member) {
-  // Simpan selalu ke cache lokal untuk respons UI instan
+  const php = phpApiStatus.checked ? phpApiStatus : await checkPhpApi();
+  if (php.available) {
+    try {
+      const res = await fetch(`${PHP_API_ENDPOINT}?resource=members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(member)
+      });
+      const json = await res.json();
+      if (json.ok && json.data) {
+        saveMemberRecord(json.data);
+        return getStoredMembers();
+      }
+      console.warn('MySQL insert member error:', json.error);
+    } catch (err) {
+      console.warn('MySQL insert member failed:', err);
+    }
+  }
+
   saveMemberRecord(member);
 
   const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
@@ -426,7 +523,25 @@ async function insertMemberOnline(member) {
 }
 
 async function insertAttendanceOnline(record) {
-  // Simpan selalu ke cache lokal
+  const php = phpApiStatus.checked ? phpApiStatus : await checkPhpApi();
+  if (php.available) {
+    try {
+      const res = await fetch(`${PHP_API_ENDPOINT}?resource=attendances`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      const json = await res.json();
+      if (json.ok && json.data) {
+        saveAttendanceRecord(json.data);
+        return getStoredAttendance();
+      }
+      console.warn('MySQL insert attendance error:', json.error);
+    } catch (err) {
+      console.warn('MySQL insert attendance failed:', err);
+    }
+  }
+
   saveAttendanceRecord(record);
 
   const client = typeof getSupabaseClient === 'function' ? getSupabaseClient() : null;
