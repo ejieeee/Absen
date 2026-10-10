@@ -62,7 +62,7 @@ if ($action == 'add_anggota' && $method == 'POST') {
     if ($conn->query($sql) === TRUE) {
         echo json_encode(["status" => "success", "message" => "Anggota baru berhasil ditambahkan", "id" => $conn->insert_id]);
     } else {
-        echo json_encode(["status" => "error", "message" => "Gagal menyimpan: " . $conn->error]);
+        echo json_encode(["status" => "error", "message" => "Gagal menyimpan ke database: " . $conn->error]);
     }
     exit();
 }
