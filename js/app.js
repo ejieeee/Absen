@@ -3,6 +3,133 @@
  * Dirancang dengan interaksi halus, validasi ramah pengguna, dan tanpa elemen dekoratif berlebih.
  */
 
+// VARIABEL GLOBAL DATABASE MYSQL
+let dbAnggotaCache = [];
+let dbAbsensiCache = [];
+let phpApiStatus = { status: 'loading', message: 'Menghubungkan ke server...' };
+
+async function checkPhpApi() {
+  try {
+    let res = await fetch('api.php?action=test_connection');
+    let data = await res.json();
+    phpApiStatus = { status: 'success', message: data.message, host: '127.0.0.1', database: 'uks_pmr' };
+  } catch (err) {
+    phpApiStatus = { status: 'error', message: 'Gagal terhubung ke api.php (Pastikan XAMPP/Apache menyala)' };
+  }
+}
+
+async function fetchMembersOnline() {
+  try {
+    let res = await fetch('api.php?action=get_anggota');
+    let data = await res.json();
+    if (data.status === 'success') {
+      dbAnggotaCache = data.data.map(m => ({
+        id: String(m.id),
+        nama: m.nama,
+        tingkat: m.tingkat,
+        jurusan: m.jurusan,
+        kelas: m.rombel,
+        divisi: m.divisi,
+        status: m.status_keanggotaan
+      }));
+    }
+  } catch (err) {
+    console.error("Gagal memuat anggota:", err);
+  }
+}
+
+async function fetchAttendanceOnline() {
+  try {
+    let res = await fetch('api.php?action=get_absensi');
+    let data = await res.json();
+    if (data.status === 'success') {
+      dbAbsensiCache = data.data.map(a => {
+        // Pisahkan waktu presensi MySQL (YYYY-MM-DD HH:MM:SS)
+        let dateTimeParts = a.waktu_presensi ? a.waktu_presensi.split(' ') : ['', ''];
+        let tgl = dateTimeParts[0];
+        let jamWaktu = dateTimeParts[1] ? dateTimeParts[1].substring(0, 5) + ' WITA' : '';
+        return {
+          id: `PMR-${a.id}`,
+          memberId: String(a.member_id),
+          nama: a.nama,
+          kelas: a.rombel,
+          tingkat: a.tingkat,
+          jurusan: a.jurusan,
+          divisi: a.divisi,
+          tanggal: tgl,
+          waktu: jamWaktu,
+          timestamp: a.waktu_presensi,
+          tandaTangan: a.signature_data
+        };
+      });
+    }
+  } catch (err) {
+    console.error("Gagal memuat absensi:", err);
+  }
+}
+
+async function insertMemberOnline(newMember) {
+  try {
+    let res = await fetch('api.php?action=add_anggota', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nama: newMember.nama,
+        tingkat: newMember.tingkat,
+        jurusan: newMember.jurusan,
+        rombel: newMember.kelas,
+        divisi: newMember.divisi,
+        status_keanggotaan: newMember.status
+      })
+    });
+    let data = await res.json();
+    if (data.status === 'success') {
+      await fetchMembersOnline();
+    } else {
+      alert("Gagal menyimpan anggota: " + data.message);
+    }
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+async function insertAttendanceOnline(record) {
+  try {
+    let res = await fetch('api.php?action=add_absensi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        member_id: parseInt(record.memberId, 10),
+        signature_data: record.tandaTangan
+      })
+    });
+    let data = await res.json();
+    if (data.status === 'success') {
+      await fetchAttendanceOnline();
+    } else {
+      alert("Gagal mencatat absensi: " + data.message);
+    }
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+function getStoredMembers() {
+  return dbAnggotaCache;
+}
+
+function getStoredAttendance() {
+  return dbAbsensiCache;
+}
+
+function getDatabaseMode() {
+  return 'mysql';
+}
+
+function getDatabaseStatusLabel() {
+  return phpApiStatus.status === 'success' ? 'MySQL Terhubung' : 'MySQL Terputus';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // STATE MANAGEMENT
@@ -66,51 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clockEl.textContent = `${hari}, ${tgl} ${bln} ${thn} • ${jam}:${menit}:${detik} WITA`;
   }
   updateLiveClock();
-  setInterval(updateLiveClock, 1000);
-
-  // =========================================================================
-  // RENDER JENIS KEGIATAN DI FORMULIR
-  // =========================================================================
-  const activityRadioGroup = document.getElementById('activityRadioGroup');
-  if (activityRadioGroup) {
-    activityRadioGroup.innerHTML = '';
-    JENIS_KEGIATAN_LIST.forEach((kegiatan, index) => {
-      const isChecked = index === 0;
-      const label = document.createElement('label');
-      label.className = `activity-radio-label ${isChecked ? 'selected' : ''}`;
-
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = 'jenisKegiatan';
-      radio.value = kegiatan.id;
-      radio.checked = isChecked;
-
-      radio.addEventListener('change', () => {
-        document.querySelectorAll('.activity-radio-label').forEach(el => el.classList.remove('selected'));
-        label.classList.add('selected');
-        state.selectedActivity = kegiatan.id;
-      });
-
-      const textWrap = document.createElement('div');
-      textWrap.className = 'activity-text-wrap';
-
-      const title = document.createElement('div');
-      title.className = 'activity-text-title';
-      title.textContent = kegiatan.label;
-
-      const desc = document.createElement('div');
-      desc.className = 'activity-text-desc';
-      desc.textContent = kegiatan.deskripsi;
-
-      textWrap.appendChild(title);
-      textWrap.appendChild(desc);
-
-      label.appendChild(radio);
-      label.appendChild(textWrap);
-
-      activityRadioGroup.appendChild(label);
-    });
-  }
+  setInterval(updateLiveClock, 1000);  
 
   // =========================================================================
   // PENCARIAN & AUTOCOMPLETE NAMA ANGGOTA
@@ -1130,6 +1213,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // MODAL 3: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
   // =========================================================================
   const openAddMemberModalBtn = document.getElementById('openAddMemberModalBtn');
+  const headerAddMemberBtn = document.getElementById('headerAddMemberBtn');
+  const absensiAddMemberPromptBtn = document.getElementById('absensiAddMemberPromptBtn');
   const addMemberModal = document.getElementById('addMemberModal');
   const addMemberModalCloseBtn = document.getElementById('addMemberModalCloseBtn');
   const addMemberModalCancelBtn = document.getElementById('addMemberModalCancelBtn');
@@ -1160,9 +1245,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openAddMemberModal() {
-    if (!addMemberModal) return;
-    newMemberNama.value = '';
-    newMemberNamaError.style.display = 'none';
+    if (!addMemberModal) {
+      console.error("Elemen addModal tidak ditemukan!");
+      return;
+    }
+    if (newMemberNama) newMemberNama.value = '';
+    if (newMemberNamaError) newMemberNamaError.style.display = 'none';
 
     if (newMemberDivisi) {
       newMemberDivisi.innerHTML = '';
@@ -1174,12 +1262,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    newMemberTingkat.value = 'X';
-    newMemberJurusan.value = 'PPLG';
+    if (newMemberTingkat) newMemberTingkat.value = 'X';
+    if (newMemberJurusan) newMemberJurusan.value = 'PPLG';
     updateNewMemberRombelOptions();
 
     addMemberModal.classList.add('show');
-    setTimeout(() => newMemberNama.focus(), 100);
+    setTimeout(() => {
+      if (newMemberNama) newMemberNama.focus();
+    }, 100);
   }
 
   function closeAddMemberModal() {
@@ -1188,18 +1278,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Pasang Event Listener ke semua tombol tambah anggota yang ada di halaman
   if (openAddMemberModalBtn) {
-    openAddMemberModalBtn.addEventListener('click', openAddMemberModal);
+    openAddMemberModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAddMemberModal();
+    });
   }
 
-  const headerAddMemberBtn = document.getElementById('headerAddMemberBtn');
   if (headerAddMemberBtn) {
-    headerAddMemberBtn.addEventListener('click', openAddMemberModal);
+    headerAddMemberBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAddMemberModal();
+    });
   }
 
-  const absensiAddMemberPromptBtn = document.getElementById('absensiAddMemberPromptBtn');
   if (absensiAddMemberPromptBtn) {
-    absensiAddMemberPromptBtn.addEventListener('click', openAddMemberModal);
+    absensiAddMemberPromptBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAddMemberModal();
+    });
   }
 
   if (addMemberModalCloseBtn) {
@@ -1220,19 +1318,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (newMemberNama) {
     newMemberNama.addEventListener('input', () => {
-      if (newMemberNama.value.trim()) {
+      if (newMemberNama.value.trim() && newMemberNamaError) {
         newMemberNamaError.style.display = 'none';
       }
     });
   }
 
   if (addMemberForm) {
-    addMemberForm.addEventListener('submit', (e) => {
+    addMemberForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const namaVal = newMemberNama.value.trim();
       if (!namaVal) {
-        newMemberNamaError.style.display = 'block';
+        if (newMemberNamaError) newMemberNamaError.style.display = 'block';
         newMemberNama.focus();
         return;
       }
@@ -1243,15 +1341,57 @@ document.addEventListener('DOMContentLoaded', () => {
       const divisiVal = newMemberDivisi.value;
       const statusVal = newMemberStatus.value;
 
-      const newMember = {
-        nama: namaVal,
-        tingkat: tingkatVal,
-        jurusan: jurusanVal,
-        kelas: rombelVal,
-        divisi: divisiVal,
-        status: statusVal
-      };
+      const submitBtn = document.getElementById('saveMemberSubmitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+      }
 
+      try {
+        let res = await fetch('api.php?action=add_anggota', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nama: namaVal,
+            tingkat: tingkatVal,
+            jurusan: jurusanVal,
+            rombel: rombelVal,
+            divisi: divisiVal,
+            status_keanggotaan: statusVal
+          })
+        });
+
+        let data = await res.json();
+        if (data.status === 'success') {
+          await fetchMembersOnline();
+          closeAddMemberModal();
+          renderAnggotaTable();
+          renderRekapTable();
+
+          if (addMemberSuccessToast && addMemberSuccessToastText) {
+            const jurObj = JURUSAN_LIST.find(j => j.id === jurusanVal);
+            const jurLabel = jurObj ? jurObj.nama : jurusanVal;
+            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" (${rombelVal} • ${jurLabel}) berhasil disimpan ke database.`;
+            addMemberSuccessToast.style.display = 'block';
+
+            setTimeout(() => {
+              addMemberSuccessToast.style.display = 'none';
+            }, 5000);
+          }
+        } else {
+          alert("Gagal: " + data.message);
+        }
+      } catch (err) {
+        console.error("Kesalahan jaringan:", err);
+        alert("Gagal terhubung ke server api.php. Pastikan XAMPP aktif.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Simpan Anggota ke Database';
+        }
+      }
+    });
+  }
       // Simpan langsung ke MySQL (dengan cadangan lokal)
       insertMemberOnline(newMember).then(() => {
         renderAnggotaTable();
@@ -1276,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
       }
     });
-  }
+  
 
   // =========================================================================
   // STATUS & MODAL KONEKSI DATABASE MYSQL
@@ -1413,4 +1553,4 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('hashchange', handleUrlHash);
   handleUrlHash();
 
-});
+;
