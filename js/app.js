@@ -81,10 +81,25 @@ document.addEventListener('DOMContentLoaded', () => {
     activeSubView: 'absensi',
   };
 
+  // Logika Dark Mode
+  const darkModeToggleBtn = document.getElementById('darkModeToggleBtn');
+  const currentTheme = localStorage.getItem('pmr_theme');
+  if (currentTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+  }
+
+  if (darkModeToggleBtn) {
+    darkModeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      let theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+      localStorage.setItem('pmr_theme', theme);
+    });
+  }
+
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
-      strokeColor: '#18181B',
+      strokeColor: document.body.classList.contains('dark-mode') ? '#F4F4F5' : '#18181B',
       lineWidth: 2.2,
       onStrokeEnd: () => {
         const errorEl = document.getElementById('signatureError');
@@ -232,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderRekapTable();
 
         attendanceForm.style.display = 'none';
-        const now = new Date();
         document.getElementById('successSummaryBox').innerHTML = `
           <div class="summary-row"><span class="summary-label">Nama</span><span class="summary-val">${state.selectedMember.nama}</span></div>
           <div class="summary-row"><span class="summary-label">Kelas / Jurusan</span><span class="summary-val">Kelas ${state.selectedMember.kelas} - ${state.selectedMember.jurusan}</span></div>
@@ -358,15 +372,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('anggotaTableBody');
     if (!tbody) return;
     const list = getStoredMembers();
-    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="4" class="empty-table-state">Belum ada data anggota.</td></tr>` : '';
+    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data anggota.</td></tr>` : '';
+    
     list.forEach((m, idx) => {
-      tbody.innerHTML += `
-        <tr>
-          <td style="color:var(--text-muted);">${idx + 1}</td>
-          <td><strong>${m.nama}</strong></td>
-          <td>Kelas ${m.kelas} - ${m.jurusan}</td>
-          <td>${m.divisi}</td>
-        </tr>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--text-muted);">${idx + 1}</td>
+        <td><strong>${m.nama}</strong></td>
+        <td>Kelas ${m.kelas} - ${m.jurusan}</td>
+        <td>${m.divisi}</td>
+        <td style="text-align: right;">
+          <button type="button" class="btn-action-table btn-danger delete-member-btn" data-id="${m.id}" data-name="${m.nama}">Hapus</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Event listener untuk tombol hapus anggota
+    tbody.querySelectorAll('.delete-member-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.target.getAttribute('data-id');
+        const name = e.target.getAttribute('data-name');
+        
+        if (confirm(`Apakah Anda yakin ingin menghapus anggota "${name}" dari database?`)) {
+          const client = getSupabaseClient();
+          if (!client) return;
+
+          let { error } = await client.from('tb_anggota').delete().eq('id', id);
+          if (!error) {
+            await fetchMembersOnline();
+            await fetchAttendanceOnline();
+            renderAnggotaTable();
+            renderRekapTable();
+            renderAbsensiTable();
+            alert(`Anggota "${name}" berhasil dihapus.`);
+          } else {
+            alert("Gagal menghapus anggota: " + error.message);
+          }
+        }
+      });
     });
   }
 

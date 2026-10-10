@@ -1165,3 +1165,62 @@ body {
     gap: 6px;
   }
 }
+
+/* Styling Tombol Toggle Dark Mode */
+.dark-mode-toggle {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: background-color 0.15s ease;
+}
+
+.dark-mode-toggle:hover {
+  background-color: var(--border-subtle);
+}
+
+/* Variabel Tema Gelap (Dark Mode) */
+body.dark-mode {
+  --bg-page: #121214;
+  --bg-surface: #18181B;
+  --bg-subtle: #27272A;
+  --bg-hover: #2E2E32;
+
+  --text-primary: #F4F4F5;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --text-inverse: #18181B;
+
+  --border-subtle: #27272A;
+  --border-strong: #3F3F46;
+  --border-focus: #F4F4F5;
+
+  --pmr-red: #EF4444;
+  --pmr-red-hover: #DC2626;
+  --pmr-red-subtle: #2D1515;
+  --pmr-red-border: #7F1D1D;
+  --pmr-red-text: #FCA5A5;
+
+  --status-active-bg: #064E3B;
+  --status-active-text: #6EE7B7;
+  --status-active-border: #047857;
+}
+
+body.dark-mode .data-table th,
+body.dark-mode .signature-footer,
+body.dark-mode .modal-footer,
+body.dark-mode .datetime-display-box,
+body.dark-mode .success-summary-box,
+body.dark-mode .demo-account-hint {
+  background-color: var(--bg-subtle);
+}
+
+body.dark-mode .table-signature-thumb {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-subtle);
+}
