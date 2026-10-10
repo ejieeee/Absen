@@ -709,43 +709,47 @@ body {
    DARK MODE PALETTE OVERRIDES
    ========================================================================== */
 body.dark-mode {
-  --bg-page: #121214;
-  --bg-surface: #18181B;
-  --bg-subtle: #27272A;
-  --bg-hover: #2E2E32;
+  --bg-page: #121214 !important;
+  --bg-surface: #18181B !important;
+  --bg-subtle: #27272A !important;
+  --bg-hover: #2E2E32 !important;
 
-  --text-primary: #F4F4F5;
-  --text-secondary: #A1A1AA;
-  --text-muted: #71717A;
-  --text-inverse: #18181B;
+  --text-primary: #F4F4F5 !important;
+  --text-secondary: #A1A1AA !important;
+  --text-muted: #71717A !important;
+  --text-inverse: #18181B !important;
 
-  --border-subtle: #27272A;
-  --border-strong: #3F3F46;
-  --border-focus: #F4F4F5;
+  --border-subtle: #27272A !important;
+  --border-strong: #3F3F46 !important;
+  --border-focus: #F4F4F5 !important;
 
-  --pmr-red: #EF4444;
-  --pmr-red-hover: #DC2626;
-  --pmr-red-subtle: #2D1515;
-  --pmr-red-border: #7F1D1D;
-  --pmr-red-text: #FCA5A5;
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
 
-  --status-active-bg: #064E3B;
-  --status-active-text: #6EE7B7;
-  --status-active-border: #047857;
+body.dark-mode .site-header,
+body.dark-mode .form-card,
+body.dark-mode .success-card,
+body.dark-mode .site-footer,
+body.dark-mode .table-container,
+body.dark-mode .filter-bar,
+body.dark-mode .modal-dialog {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
 }
 
 body.dark-mode .btn-secondary {
-  background-color: var(--bg-subtle);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
+  background-color: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
 }
 
 body.dark-mode .btn-secondary:hover {
-  background-color: var(--border-strong);
+  background-color: var(--border-strong) !important;
 }
 
 body.dark-mode .btn-danger {
-  background-color: #3F1D1D;
-  color: #FCA5A5;
-  border-color: #7F1D1D;
+  background-color: #3F1D1D !important;
+  color: #FCA5A5 !important;
+  border-color: #7F1D1D !important;
 }
