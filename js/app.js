@@ -1,69 +1,71 @@
 /**
  * app.js - Logika Interaktif Aplikasi Absensi PMR SMK Negeri 7 Samarinda
- * Dirancang dengan interaksi halus, validasi ramah pengguna, dan tanpa elemen dekoratif berlebih.
+ * Dirancang untuk GitHub Pages dengan Database Cloud Supabase.
  */
 
-// VARIABEL GLOBAL DATABASE MYSQL
+// =========================================================================
+// CACHE DATA & INTEGRASI SUPABASE
+// =========================================================================
 let dbAnggotaCache = [];
 let dbAbsensiCache = [];
-let phpApiStatus = { status: 'loading', message: 'Menghubungkan ke server...' };
-
-async function checkPhpApi() {
-  try {
-    let res = await fetch('api.php?action=test_connection');
-    let data = await res.json();
-    phpApiStatus = { status: 'success', message: data.message, host: '127.0.0.1', database: 'uks_pmr' };
-  } catch (err) {
-    phpApiStatus = { status: 'error', message: 'Gagal terhubung ke api.php (Pastikan XAMPP/Apache menyala)' };
-  }
-}
 
 async function fetchMembersOnline() {
+  const client = getSupabaseClient();
+  if (!client) return;
+
   try {
-    let res = await fetch('api.php?action=get_anggota');
-    let data = await res.json();
-    if (data.status === 'success') {
-      dbAnggotaCache = data.data.map(m => ({
+    let { data, error } = await client
+      .from('tb_anggota')
+      .select('*')
+      .order('nama', { ascending: true });
+
+    if (!error && data) {
+      dbAnggotaCache = data.map(m => ({
         id: String(m.id),
         nama: m.nama,
-        tingkat: m.tingkat,
-        jurusan: m.jurusan,
-        kelas: m.rombel,
-        divisi: m.divisi,
-        status: m.status_keanggotaan
+        kelas: m.kelas,
+        jurusanRombel: m.jurusan_rombel,
+        divisi: m.divisi
       }));
     }
   } catch (err) {
-    console.error("Gagal memuat anggota:", err);
+    console.error("Gagal mengambil data anggota dari Supabase:", err);
   }
 }
 
 async function fetchAttendanceOnline() {
+  const client = getSupabaseClient();
+  if (!client) return;
+
   try {
-    let res = await fetch('api.php?action=get_absensi');
-    let data = await res.json();
-    if (data.status === 'success') {
-      dbAbsensiCache = data.data.map(a => {
-        let dateTimeParts = a.waktu_presensi ? a.waktu_presensi.split(' ') : ['', ''];
+    let { data, error } = await client
+      .from('tb_absensi')
+      .select('*, tb_anggota(nama, kelas, jurusan_rombel, divisi)')
+      .order('waktu_presensi', { ascending: false });
+
+    if (!error && data) {
+      dbAbsensiCache = data.map(a => {
+        let dateTimeParts = a.waktu_presensi ? a.waktu_presensi.split('T') : ['', ''];
         let tgl = dateTimeParts[0];
-        let jamWaktu = dateTimeParts[1] ? dateTimeParts[1].substring(0, 5) + ' WITA' : '';
+        let timePart = dateTimeParts[1] ? dateTimeParts[1].substring(0, 5) : '';
+        let jamWaktu = timePart ? `${timePart} WITA` : '';
+        let m = a.tb_anggota || {};
+
         return {
           id: `PMR-${a.id}`,
           memberId: String(a.member_id),
-          nama: a.nama,
-          kelas: a.rombel,
-          tingkat: a.tingkat,
-          jurusan: a.jurusan,
-          divisi: a.divisi,
+          nama: m.nama || 'Anggota',
+          kelas: m.kelas || '-',
+          jurusanRombel: m.jurusan_rombel || '-',
+          divisi: m.divisi || '-',
           tanggal: tgl,
           waktu: jamWaktu,
-          timestamp: a.waktu_presensi,
           tandaTangan: a.signature_data
         };
       });
     }
   } catch (err) {
-    console.error("Gagal memuat absensi:", err);
+    console.error("Gagal mengambil data absensi dari Supabase:", err);
   }
 }
 
@@ -75,14 +77,9 @@ function getStoredAttendance() {
   return dbAbsensiCache;
 }
 
-function getDatabaseMode() {
-  return 'mysql';
-}
-
-function getDatabaseStatusLabel() {
-  return phpApiStatus.status === 'success' ? 'MySQL Terhubung' : 'MySQL Terputus';
-}
-
+// =========================================================================
+// LOGIKA UTAMA APLIKASI (DOM LOADED)
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   const state = {
     selectedMember: null,
@@ -93,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredAutocompleteList: []
   };
 
-  // Inisialisasi Canvas Tanda Tangan
+  // 1. Inisialisasi Canvas Tanda Tangan Digital
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
@@ -113,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Waktu Live (WITA)
+  // 2. Jam Digital WITA
   function updateLiveClock() {
     const clockEl = document.getElementById('liveDateTimeText');
     if (!clockEl) return;
@@ -139,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateLiveClock();
   setInterval(updateLiveClock, 1000);
 
-  // Pencarian & Autocomplete Nama Anggota
+  // 3. Autocomplete Nama Anggota
   const searchInput = document.getElementById('memberSearchInput');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const dropdown = document.getElementById('autocompleteDropdown');
@@ -162,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.filteredAutocompleteList = allMembers.filter(m => {
       return m.nama.toLowerCase().includes(cleanQuery) ||
              m.kelas.toLowerCase().includes(cleanQuery) ||
-             m.jurusan.toLowerCase().includes(cleanQuery);
+             m.jurusanRombel.toLowerCase().includes(cleanQuery);
     });
 
     if (state.filteredAutocompleteList.length === 0) {
@@ -195,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = 'autocomplete-item';
       item.setAttribute('role', 'option');
-      item.setAttribute('data-index', index);
 
       const nameEl = document.createElement('div');
       nameEl.className = 'autocomplete-item-name';
@@ -203,9 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const metaEl = document.createElement('div');
       metaEl.className = 'autocomplete-item-meta';
-      const jurObj = JURUSAN_LIST.find(j => j.id === member.jurusan);
-      const jurNama = jurObj ? jurObj.nama : member.jurusan;
-      metaEl.textContent = `Kelas ${member.kelas} • ${jurNama}`;
+      metaEl.textContent = `Kelas ${member.kelas} • ${member.jurusanRombel}`;
 
       item.appendChild(nameEl);
       item.appendChild(metaEl);
@@ -222,42 +216,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function selectMember(member) {
     state.selectedMember = member;
-    selectedMemberIdInput.value = member.id;
-    searchInput.value = member.nama;
-    dropdown.classList.remove('show');
+    if (selectedMemberIdInput) selectedMemberIdInput.value = member.id;
+    if (searchInput) searchInput.value = member.nama;
+    if (dropdown) dropdown.classList.remove('show');
 
-    document.getElementById('selectedMemberName').textContent = member.nama;
-    document.getElementById('selectedMemberClass').textContent = member.kelas;
-    
-    const jurObj = JURUSAN_LIST.find(j => j.id === member.jurusan);
-    document.getElementById('selectedMemberMajor').textContent = jurObj ? jurObj.nama : member.jurusan;
-    document.getElementById('selectedMemberDivision').textContent = member.divisi;
+    const nameEl = document.getElementById('selectedMemberName');
+    const classEl = document.getElementById('selectedMemberClass');
+    const majorEl = document.getElementById('selectedMemberMajor');
+    const divEl = document.getElementById('selectedMemberDivision');
 
-    selectedMemberCard.classList.add('visible');
-    clearSearchBtn.style.display = 'block';
+    if (nameEl) nameEl.textContent = member.nama;
+    if (classEl) classEl.textContent = member.kelas;
+    if (majorEl) majorEl.textContent = member.jurusanRombel;
+    if (divEl) divEl.textContent = member.divisi;
+
+    if (selectedMemberCard) selectedMemberCard.classList.add('visible');
+    if (clearSearchBtn) clearSearchBtn.style.display = 'block';
   }
 
   function resetMemberSelection() {
     state.selectedMember = null;
-    selectedMemberIdInput.value = '';
-    searchInput.value = '';
-    selectedMemberCard.classList.remove('visible');
-    dropdown.classList.remove('show');
-    clearSearchBtn.style.display = 'none';
-    searchInput.focus();
+    if (selectedMemberIdInput) selectedMemberIdInput.value = '';
+    if (searchInput) searchInput.value = '';
+    if (selectedMemberCard) selectedMemberCard.classList.remove('visible');
+    if (dropdown) dropdown.classList.remove('show');
+    if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+    if (searchInput) searchInput.focus();
   }
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       const val = e.target.value;
-      clearSearchBtn.style.display = val ? 'block' : 'none';
+      if (clearSearchBtn) clearSearchBtn.style.display = val ? 'block' : 'none';
       renderAutocomplete(val);
     });
 
     searchInput.addEventListener('focus', () => {
-      if (searchInput.value) {
-        renderAutocomplete(searchInput.value);
-      }
+      if (searchInput.value) renderAutocomplete(searchInput.value);
     });
   }
 
@@ -270,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Submit Formulir Absensi
+  // 4. Submit Absensi Anggota
   const attendanceForm = document.getElementById('attendanceForm');
   const successCard = document.getElementById('successCard');
   const resetFormBtn = document.getElementById('resetFormBtn');
@@ -281,16 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
 
       if (!state.selectedMember) {
-        searchInput.focus();
+        if (searchInput) searchInput.focus();
         alert('Silakan cari dan pilih nama anggota terlebih dahulu.');
         return;
       }
 
-      if (state.signaturePad.isEmpty()) {
-        signatureError.style.display = 'block';
-        canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (state.signaturePad && state.signaturePad.isEmpty()) {
+        if (signatureError) signatureError.style.display = 'block';
+        if (canvasEl) canvasEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
-      } else {
+      } else if (signatureError) {
         signatureError.style.display = 'none';
       }
 
@@ -301,17 +296,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        let res = await fetch('api.php?action=add_absensi', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            member_id: parseInt(state.selectedMember.id, 10),
-            signature_data: state.signaturePad.toDataURL()
-          })
-        });
+        const client = getSupabaseClient();
+        if (!client) {
+          alert("Gagal terhubung ke Supabase. Periksa file supabase-config.js Anda.");
+          return;
+        }
 
-        let data = await res.json();
-        if (data.status === 'success') {
+        let { error } = await client.from('tb_absensi').insert([{
+          member_id: parseInt(state.selectedMember.id, 10),
+          signature_data: state.signaturePad.toDataURL()
+        }]);
+
+        if (!error) {
           await fetchAttendanceOnline();
           renderAbsensiTable();
           renderRekapTable();
@@ -323,35 +319,35 @@ document.addEventListener('DOMContentLoaded', () => {
           const menit = String(now.getMinutes()).padStart(2, '0');
           const timeFormatted = `${jam}:${menit} WITA`;
 
-          const jurObj = JURUSAN_LIST.find(j => j.id === state.selectedMember.jurusan);
-          const jurNama = jurObj ? jurObj.nama : state.selectedMember.jurusan;
+          const summaryBox = document.getElementById('successSummaryBox');
+          if (summaryBox) {
+            summaryBox.innerHTML = `
+              <div class="summary-row">
+                <span class="summary-label">Nama Anggota</span>
+                <span class="summary-val">${state.selectedMember.nama}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Kelas & Rombel</span>
+                <span class="summary-val">${state.selectedMember.kelas} • ${state.selectedMember.jurusanRombel}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Divisi</span>
+                <span class="summary-val">${state.selectedMember.divisi}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Waktu Presensi</span>
+                <span class="summary-val">${formatTanggalIndo(dateStr)} • ${timeFormatted}</span>
+              </div>
+            `;
+          }
 
-          document.getElementById('successSummaryBox').innerHTML = `
-            <div class="summary-row">
-              <span class="summary-label">Nama Anggota</span>
-              <span class="summary-val">${state.selectedMember.nama}</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Kelas & Rombel</span>
-              <span class="summary-val">${state.selectedMember.kelas} (${jurNama})</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Divisi</span>
-              <span class="summary-val">${state.selectedMember.divisi}</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Waktu Tercatat</span>
-              <span class="summary-val">${formatTanggalIndo(dateStr)} • ${timeFormatted}</span>
-            </div>
-          `;
-
-          successCard.classList.add('visible');
+          if (successCard) successCard.classList.add('visible');
         } else {
-          alert("Gagal: " + data.message);
+          alert("Gagal mencatat absensi: " + error.message);
         }
       } catch (err) {
-        console.error("Kesalahan jaringan:", err);
-        alert("Gagal terhubung ke server api.php.");
+        console.error("Kesalahan pengiriman absensi:", err);
+        alert("Terjadi kesalahan jaringan.");
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -363,15 +359,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (resetFormBtn) {
     resetFormBtn.addEventListener('click', () => {
-      successCard.classList.remove('visible');
-      attendanceForm.style.display = 'block';
+      if (successCard) successCard.classList.remove('visible');
+      if (attendanceForm) attendanceForm.style.display = 'block';
       resetMemberSelection();
-      state.signaturePad.clear();
+      if (state.signaturePad) state.signaturePad.clear();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
-  // Switcher Tab Utama (Formulir Anggota vs Portal Sekretaris)
+  // 5. Switcher Tab Utama (Formulir vs Sekretaris)
   const tabBtnMember = document.getElementById('tabBtnMember');
   const tabBtnSecretary = document.getElementById('tabBtnSecretary');
   const viewMember = document.getElementById('viewMember');
@@ -380,25 +376,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchMainTab(target) {
     if (target === 'member') {
-      tabBtnMember.classList.add('active');
-      tabBtnMember.setAttribute('aria-selected', 'true');
-      tabBtnSecretary.classList.remove('active');
-      tabBtnSecretary.setAttribute('aria-selected', 'false');
-
-      viewMember.style.display = 'block';
-      viewSecretary.style.display = 'none';
-
-      if (state.signaturePad) {
-        state.signaturePad.resizeCanvas();
+      if (tabBtnMember) {
+        tabBtnMember.classList.add('active');
+        tabBtnMember.setAttribute('aria-selected', 'true');
       }
-    } else {
-      tabBtnSecretary.classList.add('active');
-      tabBtnSecretary.setAttribute('aria-selected', 'true');
-      tabBtnMember.classList.remove('active');
-      tabBtnMember.setAttribute('aria-selected', 'false');
+      if (tabBtnSecretary) {
+        tabBtnSecretary.classList.remove('active');
+        tabBtnSecretary.setAttribute('aria-selected', 'false');
+      }
+      if (viewMember) viewMember.style.display = 'block';
+      if (viewSecretary) viewSecretary.style.display = 'none';
 
-      viewMember.style.display = 'none';
-      viewSecretary.style.display = 'block';
+      if (state.signaturePad) state.signaturePad.resizeCanvas();
+    } else {
+      if (tabBtnSecretary) {
+        tabBtnSecretary.classList.add('active');
+        tabBtnSecretary.setAttribute('aria-selected', 'true');
+      }
+      if (tabBtnMember) {
+        tabBtnMember.classList.remove('active');
+        tabBtnMember.setAttribute('aria-selected', 'false');
+      }
+      if (viewMember) viewMember.style.display = 'none';
+      if (viewSecretary) viewSecretary.style.display = 'block';
 
       if (state.isSecretaryLoggedIn) {
         document.getElementById('secretaryLoginView').style.display = 'none';
@@ -413,12 +413,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (tabBtnMember) tabBtnMember.addEventListener('click', () => switchMainTab('member'));
   if (tabBtnSecretary) tabBtnSecretary.addEventListener('click', () => switchMainTab('secretary'));
-  if (brandHomeLink) brandHomeLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    switchMainTab('member');
-  });
+  if (brandHomeLink) {
+    brandHomeLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchMainTab('member');
+    });
+  }
 
-  // Login & Logout Sekretaris
+  // 6. Login Sekretaris via Supabase
   const secretaryLoginForm = document.getElementById('secretaryLoginForm');
   const secUsernameInput = document.getElementById('secUsername');
   const secPasswordInput = document.getElementById('secPassword');
@@ -432,27 +434,42 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = secPasswordInput.value.trim();
 
       try {
-        let res = await fetch('api.php?action=login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p })
-        });
-        let data = await res.json();
-        if (data.status === 'success') {
+        const client = getSupabaseClient();
+        if (!client) {
+          // Fallback login lokal jika Supabase belum terkonfigurasi
+          if (u === 'sekretaris' && p === 'pmr123') {
+            state.isSecretaryLoggedIn = true;
+            document.getElementById('secretaryLoginView').style.display = 'none';
+            document.getElementById('secretaryMainView').style.display = 'block';
+            renderActiveSecretaryView();
+            return;
+          }
+        }
+
+        let { data, error } = await client
+          .from('tb_admin_sekretaris')
+          .select('*')
+          .eq('username', u)
+          .eq('password', p)
+          .single();
+
+        if (!error && data) {
           state.isSecretaryLoggedIn = true;
-          loginErrorMsg.style.display = 'none';
+          if (loginErrorMsg) loginErrorMsg.style.display = 'none';
           document.getElementById('secretaryLoginView').style.display = 'none';
           document.getElementById('secretaryMainView').style.display = 'block';
-          populateAdminFilterDropdowns();
           renderActiveSecretaryView();
         } else {
-          loginErrorMsg.style.display = 'block';
-          loginErrorMsg.textContent = data.message;
+          if (loginErrorMsg) {
+            loginErrorMsg.style.display = 'block';
+            loginErrorMsg.textContent = 'Username atau password salah.';
+          }
         }
       } catch (err) {
-        console.error("Login error:", err);
-        loginErrorMsg.style.display = 'block';
-        loginErrorMsg.textContent = 'Gagal terhubung ke server.';
+        if (loginErrorMsg) {
+          loginErrorMsg.style.display = 'block';
+          loginErrorMsg.textContent = 'Gagal terhubung ke database.';
+        }
       }
     });
   }
@@ -462,47 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
       state.isSecretaryLoggedIn = false;
       document.getElementById('secretaryLoginView').style.display = 'block';
       document.getElementById('secretaryMainView').style.display = 'none';
-      secPasswordInput.value = '';
+      if (secPasswordInput) secPasswordInput.value = '';
     });
   }
 
-  // Populasi Filter Dropdowns Sekretaris
-  function populateAdminFilterDropdowns() {
-    const rombelSelects = [
-      document.getElementById('filterAbsensiRombel'),
-      document.getElementById('filterAnggotaRombel')
-    ];
-
-    rombelSelects.forEach(sel => {
-      if (!sel) return;
-      sel.innerHTML = '<option value="all">Semua Rombel</option>';
-      ROMBEL_LIST.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = r.label;
-        sel.appendChild(opt);
-      });
-    });
-
-    const divisiSelects = [
-      document.getElementById('filterAbsensiDivisi'),
-      document.getElementById('filterAnggotaDivisi'),
-      document.getElementById('filterRekapDivisi')
-    ];
-
-    divisiSelects.forEach(sel => {
-      if (!sel) return;
-      sel.innerHTML = '<option value="all">Semua Divisi</option>';
-      DIVISI_LIST.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = d;
-        sel.appendChild(opt);
-      });
-    });
-  }
-
-  // Sub-nav Sekretaris
+  // 7. Render Subviews Portal Sekretaris
   const subnavLinks = document.querySelectorAll('.subnav-link');
   subnavLinks.forEach(link => {
     link.addEventListener('click', () => {
@@ -518,37 +499,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const subviewAnggota = document.getElementById('subviewAnggota');
     const subviewRekap = document.getElementById('subviewRekap');
 
-    const titleEl = document.getElementById('secretarySectionTitle');
-    const subEl = document.getElementById('secretarySectionSubtitle');
-    const exportBtn = document.getElementById('exportCsvBtn');
-
     if (subviewAbsensi) subviewAbsensi.style.display = 'none';
     if (subviewAnggota) subviewAnggota.style.display = 'none';
     if (subviewRekap) subviewRekap.style.display = 'none';
 
     if (state.activeSubView === 'absensi') {
       if (subviewAbsensi) subviewAbsensi.style.display = 'block';
-      if (titleEl) titleEl.textContent = 'Absensi Anggota';
-      if (subEl) subEl.textContent = 'Daftar catatan kehadiran latihan rutin dan kegiatan PMR';
-      if (exportBtn) {
-        exportBtn.style.display = 'inline-flex';
-        exportBtn.textContent = 'Ekspor Absensi (CSV)';
-      }
       renderAbsensiTable();
     } else if (state.activeSubView === 'anggota') {
       if (subviewAnggota) subviewAnggota.style.display = 'block';
-      if (titleEl) titleEl.textContent = 'Data Anggota PMR';
-      if (subEl) subEl.textContent = 'Struktur anggota resmi PMR Wira SMK Negeri 7 Samarinda';
-      if (exportBtn) {
-        exportBtn.style.display = 'inline-flex';
-        exportBtn.textContent = 'Ekspor Anggota (CSV)';
-      }
       renderAnggotaTable();
     } else if (state.activeSubView === 'rekap') {
       if (subviewRekap) subviewRekap.style.display = 'block';
-      if (titleEl) titleEl.textContent = 'Rekap Kehadiran';
-      if (subEl) subEl.textContent = 'Rekapitulasi total keikutsertaan kegiatan per anggota';
-      if (exportBtn) exportBtn.style.display = 'none';
       renderRekapTable();
     }
   }
@@ -564,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (countEl) countEl.textContent = `Menampilkan ${list.length} catatan kehadiran`;
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Tidak ada catatan absensi.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Belum ada data absensi.</td></tr>`;
       return;
     }
 
@@ -576,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size: 0.76rem; color: var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div>
         </td>
         <td><strong>${item.nama}</strong></td>
-        <td>${item.kelas}</td>
+        <td>${item.kelas} • ${item.jurusanRombel}</td>
         <td>${item.divisi}</td>
         <td>${item.tandaTangan ? `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">` : '-'}</td>
         <td style="text-align: right;"><button type="button" class="btn-action-table">Detail</button></td>
@@ -596,21 +558,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (countEl) countEl.textContent = `Menampilkan ${list.length} anggota resmi`;
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty-table-state">Tidak ada data anggota.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-table-state">Belum ada data anggota.</td></tr>`;
       return;
     }
 
     list.forEach((m, idx) => {
       const tr = document.createElement('tr');
-      const jurObj = JURUSAN_LIST.find(j => j.id === m.jurusan);
-      const jurNama = jurObj ? jurObj.nama : m.jurusan;
       tr.innerHTML = `
         <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
         <td><strong>${m.nama}</strong></td>
         <td>${m.kelas}</td>
-        <td>${jurNama}</td>
+        <td>${m.jurusanRombel}</td>
         <td>${m.divisi}</td>
-        <td><span class="status-pill status-aktif">${m.status}</span></td>
       `;
       tbody.appendChild(tr);
     });
@@ -634,11 +593,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tr.innerHTML = `
         <td style="color: var(--text-muted); font-size: 0.8rem;">${idx + 1}</td>
         <td><strong>${m.nama}</strong></td>
-        <td>${m.kelas}</td>
+        <td>${m.kelas} • ${m.jurusanRombel}</td>
         <td>${m.divisi}</td>
-        <td style="text-align: center;">${total}</td>
-        <td style="text-align: center;">0</td>
-        <td style="text-align: center;">0</td>
         <td style="text-align: center; font-weight: 700; color: var(--pmr-red);">${total}</td>
         <td><span class="status-pill status-aktif">${total > 0 ? 'Aktif' : 'Belum Absen'}</span></td>
       `;
@@ -646,58 +602,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // =========================================================================
-  // MODAL 3: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
-  // =========================================================================
-  const openAddMemberModalBtn = document.getElementById('openAddMemberModalBtn');
-  const headerAddMemberBtn = document.getElementById('headerAddMemberBtn');
-  const absensiAddMemberPromptBtn = document.getElementById('absensiAddMemberPromptBtn');
+  // 8. Modal Tambah Anggota (Event Delegation Aman)
   const addMemberModal = document.getElementById('addMemberModal');
   const addMemberModalCloseBtn = document.getElementById('addMemberModalCloseBtn');
   const addMemberModalCancelBtn = document.getElementById('addMemberModalCancelBtn');
   const addMemberForm = document.getElementById('addMemberForm');
   const newMemberNama = document.getElementById('newMemberNama');
   const newMemberNamaError = document.getElementById('newMemberNamaError');
-  const newMemberTingkat = document.getElementById('newMemberTingkat');
-  const newMemberJurusan = document.getElementById('newMemberJurusan');
-  const newMemberRombel = document.getElementById('newMemberRombel');
-  const newMemberDivisi = document.getElementById('newMemberDivisi');
   const addMemberSuccessToast = document.getElementById('addMemberSuccessToast');
   const addMemberSuccessToastText = document.getElementById('addMemberSuccessToastText');
-
-  function updateNewMemberRombelOptions() {
-    if (!newMemberRombel || !newMemberTingkat || !newMemberJurusan) return;
-    const selectedTingkat = newMemberTingkat.value;
-    const selectedJurusan = newMemberJurusan.value;
-
-    const matchingRombels = ROMBEL_LIST.filter(r => r.tingkat === selectedTingkat && r.jurusan === selectedJurusan);
-    newMemberRombel.innerHTML = '';
-    matchingRombels.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = r.label;
-      newMemberRombel.appendChild(opt);
-    });
-  }
 
   function openAddMemberModal() {
     if (!addMemberModal) return;
     if (newMemberNama) newMemberNama.value = '';
     if (newMemberNamaError) newMemberNamaError.style.display = 'none';
-
-    if (newMemberDivisi) {
-      newMemberDivisi.innerHTML = '';
-      DIVISI_LIST.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = d;
-        newMemberDivisi.appendChild(opt);
-      });
-    }
-
-    if (newMemberTingkat) newMemberTingkat.value = 'X';
-    if (newMemberJurusan) newMemberJurusan.value = 'PPLG';
-    updateNewMemberRombelOptions();
 
     addMemberModal.classList.add('show');
     setTimeout(() => {
@@ -709,32 +627,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addMemberModal) addMemberModal.classList.remove('show');
   }
 
-  if (openAddMemberModalBtn) {
-    openAddMemberModalBtn.addEventListener('click', (e) => {
+  document.addEventListener('click', (e) => {
+    const targetBtn = e.target.closest('#openAddMemberModalBtn, #headerAddMemberBtn, #absensiAddMemberPromptBtn');
+    if (targetBtn) {
       e.preventDefault();
       openAddMemberModal();
-    });
-  }
-
-  if (headerAddMemberBtn) {
-    headerAddMemberBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openAddMemberModal();
-    });
-  }
-
-  if (absensiAddMemberPromptBtn) {
-    absensiAddMemberPromptBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openAddMemberModal();
-    });
-  }
+    }
+  });
 
   if (addMemberModalCloseBtn) addMemberModalCloseBtn.addEventListener('click', closeAddMemberModal);
   if (addMemberModalCancelBtn) addMemberModalCancelBtn.addEventListener('click', closeAddMemberModal);
-
-  if (newMemberTingkat) newMemberTingkat.addEventListener('change', updateNewMemberRombelOptions);
-  if (newMemberJurusan) newMemberJurusan.addEventListener('change', updateNewMemberRombelOptions);
 
   if (addMemberForm) {
     addMemberForm.addEventListener('submit', async (e) => {
@@ -747,6 +649,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const kelasVal = document.getElementById('newMemberKelas') ? document.getElementById('newMemberKelas').value : 'X';
+      const jurusanRombelVal = document.getElementById('newMemberJurusanRombel') ? document.getElementById('newMemberJurusanRombel').value : 'PPLG - X PPLG 1';
+      const divisiVal = document.getElementById('newMemberDivisi') ? document.getElementById('newMemberDivisi').value : 'Litbang Jaya';
+
       const submitBtn = document.getElementById('saveMemberSubmitBtn');
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -754,37 +660,36 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        let res = await fetch('api.php?action=add_anggota', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama: namaVal,
-            tingkat: newMemberTingkat.value,
-            jurusan: newMemberJurusan.value,
-            rombel: newMemberRombel.value,
-            divisi: newMemberDivisi.value,
-            status_keanggotaan: document.getElementById('newMemberStatus').value
-          })
-        });
+        const client = getSupabaseClient();
+        if (!client) {
+          alert("Gagal terhubung ke Supabase.");
+          return;
+        }
 
-        let data = await res.json();
-        if (data.status === 'success') {
+        let { error } = await client.from('tb_anggota').insert([{
+          nama: namaVal,
+          kelas: kelasVal,
+          jurusan_rombel: jurusanRombelVal,
+          divisi: divisiVal
+        }]);
+
+        if (!error) {
           await fetchMembersOnline();
           closeAddMemberModal();
           renderAnggotaTable();
           renderRekapTable();
 
           if (addMemberSuccessToast && addMemberSuccessToastText) {
-            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" berhasil disimpan ke database MySQL.`;
+            addMemberSuccessToastText.textContent = `Anggota "${namaVal}" berhasil disimpan ke database.`;
             addMemberSuccessToast.style.display = 'block';
             setTimeout(() => { addMemberSuccessToast.style.display = 'none'; }, 5000);
           }
         } else {
-          alert("Gagal: " + data.message);
+          alert("Gagal menyimpan anggota: " + error.message);
         }
       } catch (err) {
         console.error("Kesalahan jaringan:", err);
-        alert("Gagal terhubung ke server api.php.");
+        alert("Gagal menyimpan data.");
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -794,9 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Inisialisasi Data Awal dari Database
+  // 9. Inisialisasi Aplikasi saat Pertama Kali Dibuka
   async function initApp() {
-    await checkPhpApi();
     await fetchMembersOnline();
     await fetchAttendanceOnline();
     renderAnggotaTable();
