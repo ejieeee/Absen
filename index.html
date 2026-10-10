@@ -396,8 +396,22 @@
 
             <div class="filter-bar-footer">
               <span id="anggotaCountText">Menampilkan 0 anggota</span>
-              <button type="button" id="resetFilterAnggotaBtn" class="filter-reset-link">Reset Filter</button>
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button type="button" id="resetFilterAnggotaBtn" class="filter-reset-link">Reset Filter</button>
+                <button type="button" id="openAddMemberModalBtn" class="btn-primary" style="font-size: 0.82rem; padding: 6px 14px; width: auto;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Tambah Anggota
+                </button>
+              </div>
             </div>
+          </div>
+
+          <!-- Alert Notifikasi Tambah Anggota Berhasil -->
+          <div id="addMemberSuccessToast" style="display: none; margin-bottom: 14px; padding: 10px 14px; background-color: var(--status-active-bg); border: 1px solid var(--status-active-border); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--status-active-text);">
+            <strong>Berhasil disimpan:</strong> <span id="addMemberSuccessToastText">Anggota baru berhasil disimpan ke database.</span>
           </div>
 
           <!-- Tabel Anggota -->
@@ -553,6 +567,99 @@
           Tutup
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: TAMBAH ANGGOTA BARU (PORTAL SEKRETARIS)
+       ========================================================================= -->
+  <div id="addMemberModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addMemberModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="addMemberModalTitle" class="modal-title">Tambah Anggota PMR Baru</h3>
+        <button type="button" class="modal-close-btn" id="addMemberModalCloseBtn" aria-label="Tutup modal">&times;</button>
+      </div>
+      <form id="addMemberForm" novalidate>
+        <div class="modal-body">
+          <p style="font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 16px;">
+            Masukkan data anggota baru. Data akan langsung disimpan ke database dan dapat dicari di formulir absensi.
+          </p>
+
+          <div class="form-group">
+            <label for="newMemberNama" class="form-label">
+              Nama Lengkap <span class="required-indicator">*</span>
+            </label>
+            <input type="text" id="newMemberNama" class="form-input" placeholder="Contoh: Muhammad Akbar Syahputra" required autocomplete="off">
+            <div id="newMemberNamaError" class="form-hint" style="color: var(--pmr-red); display: none;">Nama anggota wajib diisi.</div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label for="newMemberTingkat" class="form-label">
+                Tingkat Kelas <span class="required-indicator">*</span>
+              </label>
+              <select id="newMemberTingkat" class="form-select" required>
+                <option value="X">Kelas X</option>
+                <option value="XI">Kelas XI</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="newMemberJurusan" class="form-label">
+                Jurusan <span class="required-indicator">*</span>
+              </label>
+              <select id="newMemberJurusan" class="form-select" required>
+                <option value="PPLG">PPLG</option>
+                <option value="TJKT">TJKT</option>
+                <option value="DKV">DKV</option>
+                <option value="Animasi">Animasi</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newMemberRombel" class="form-label">
+              Rombongan Belajar (Rombel) <span class="required-indicator">*</span>
+            </label>
+            <select id="newMemberRombel" class="form-select" required>
+              <!-- Pilihan terfilter secara dinamis via JS -->
+            </select>
+            <div class="form-hint">Daftar rombel disesuaikan dengan tingkat dan jurusan yang dipilih.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="newMemberDivisi" class="form-label">
+              Divisi PMR <span class="required-indicator">*</span>
+            </label>
+            <select id="newMemberDivisi" class="form-select" required>
+              <!-- Diisi dari DIVISI_LIST via JS -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="newMemberStatus" class="form-label">
+              Status Keanggotaan <span class="required-indicator">*</span>
+            </label>
+            <select id="newMemberStatus" class="form-select" required>
+              <option value="Calon Anggota">Calon Anggota</option>
+              <option value="Anggota Wira" selected>Anggota Wira</option>
+              <option value="Pengurus (Ketua)">Pengurus (Ketua)</option>
+              <option value="Pengurus (Sekretaris)">Pengurus (Sekretaris)</option>
+              <option value="Pengurus (Koord. Divisi)">Pengurus (Koord. Divisi)</option>
+              <option value="Pengurus (Humas)">Pengurus (Humas)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="addMemberModalCancelBtn" class="btn-secondary">
+            Batal
+          </button>
+          <button type="submit" id="saveMemberSubmitBtn" class="btn-primary" style="width: auto;">
+            Simpan Anggota ke Database
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
