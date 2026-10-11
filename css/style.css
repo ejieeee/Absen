@@ -709,8 +709,8 @@ body {
    DARK MODE PALETTE OVERRIDES (SINTAKS RESMI)
    ========================================================================== */
 body.dark-mode {
-  --bg-page: ##191970;
-  --bg-surface: #1#191970;
+  --bg-page: ##0F172A;
+  --bg-surface: #0F172A;
   --bg-subtle: #27272A;
   --bg-hover: #2E2E32;
 
