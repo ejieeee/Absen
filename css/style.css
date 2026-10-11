@@ -706,7 +706,7 @@ body {
 }
 
 /* ==========================================================================
-   DARK MODE PALETTE OVERRIDES (SINTAKS RESMI)
+   DARK MODE PALETTE OVERRIDES (SINTAKS RESMI - BERBASIS BIRU HARMONIS)
    ========================================================================== */
 body.dark-mode {
   --bg-page: #121214;
@@ -717,23 +717,28 @@ body.dark-mode {
   --text-primary: #F4F4F5;
   --text-secondary: #A1A1AA;
   --text-muted: #71717A;
-  --text-inverse: #18181B;
+  --text-inverse: #121214; /* Disesuaikan dengan warna --bg-page agar teks di dalam tombol biru kontras */
 
   --border-subtle: #27272A;
   --border-strong: #3F3F46;
-  --border-focus: #F4F4F5;
+  --border-focus: #60A5FA; /* Menggunakan biru cerah untuk indikator fokus input */
 
-  --pmr-red: #EF4444;
-  --pmr-red-hover: #DC2626;
-  --pmr-red-subtle: #2D1515;
-  --pmr-red-border: #7F1D1D;
-  --pmr-red-text: #FCA5A5;
+  /* Mengubah Aksen Utama Menjadi Biru di Mode Gelap */
+  --pmr-red: #3B82F6;         /* Biru utama untuk tombol primary (CTA) */
+  --pmr-red-hover: #2563EB;   /* Biru lebih pekat saat tombol ditekan/hover */
+  --pmr-red-subtle: #1D4ED81A;/* Biru transparan lembut untuk latar belakang badge */
+  --pmr-red-border: #2563EB;  /* Garis tepi komponen biru */
+  --pmr-red-text: #60A5FA;    /* Teks biru terang untuk kontras tinggi */
 
-  --status-active-bg: #064E3B;
-  --status-active-text: #6EE7B7;
-  --status-active-border: #047857;
+  /* Status Aktif / Sukses Berbasis Biru Cyan (Segar & Modern) */
+  --status-active-bg: #07598533; 
+  --status-active-text: #38BDF8;
+  --status-active-border: #0284C7;
 }
 
+/* KELAS KOMPONEN TAMBAHAN */
+
+/* Tombol Sekunder (Batal / Kembali) */
 body.dark-mode .btn-secondary {
   background-color: var(--bg-subtle);
   color: var(--text-primary);
@@ -741,11 +746,19 @@ body.dark-mode .btn-secondary {
 }
 
 body.dark-mode .btn-secondary:hover {
-  background-color: var(--border-strong);
+  background-color: var(--bg-hover);
+  border-color: var(--border-muted);
 }
 
+/* Tombol Destruktif (Hapus / Keluar) - Diperbaiki dari Kode Anda */
 body.dark-mode .btn-danger {
-  background-color: #3F1D1D;
-  color: #FCA5A5;
-  border-color: #3B82F6;
+  background-color: #2D1515;   /* Merah gelap pekat agar tidak menusuk mata */
+  color: #FCA5A5;              /* Teks merah muda pastel untuk keterbacaan */
+  border: 1px solid #7F1D1D;   /* Diubah ke merah tua (Bukan Biru #3B82F6) agar konsisten */
+  transition: background-color 0.15s ease;
+}
+
+body.dark-mode .btn-danger:hover {
+  background-color: #4C1D1D;   /* Merah sedikit lebih terang saat hover */
+  color: #FFE4E6;
 }
