@@ -88,14 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('dark-mode');
   }
 
-  if (darkModeToggleBtn) {
-    darkModeToggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('dark-mode');
-      let theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-      localStorage.setItem('pmr_theme', theme);
-    });
-  }
-
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
@@ -104,6 +96,19 @@ document.addEventListener('DOMContentLoaded', () => {
       onStrokeEnd: () => {
         const errorEl = document.getElementById('signatureError');
         if (errorEl) errorEl.style.display = 'none';
+      }
+    });
+  }
+
+  if (darkModeToggleBtn) {
+    darkModeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      localStorage.setItem('pmr_theme', isDark ? 'dark' : 'light');
+
+      // Update warna garis pada canvas secara langsung
+      if (state.signaturePad) {
+        state.signaturePad.setStrokeColor(isDark ? '#F4F4F5' : '#18181B');
       }
     });
   }
@@ -414,14 +419,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Filter Rekap Bulan & Tahun
+  const monthSelect = document.getElementById('rekapMonthSelect');
+  const yearSelect = document.getElementById('rekapYearSelect');
+
+  if (monthSelect && yearSelect) {
+    const today = new Date();
+    monthSelect.value = String(today.getMonth() + 1);
+    yearSelect.value = String(today.getFullYear());
+
+    monthSelect.addEventListener('change', renderRekapTable);
+    yearSelect.addEventListener('change', renderRekapTable);
+  }
+
   function renderRekapTable() {
     const tbody = document.getElementById('rekapTableBody');
     if (!tbody) return;
+
     const members = getStoredMembers();
     const attendance = getStoredAttendance();
+
+    const selectedMonth = monthSelect ? monthSelect.value : 'all';
+    const selectedYear = yearSelect ? yearSelect.value : 'all';
+
     tbody.innerHTML = '';
+
     members.forEach((m, idx) => {
-      const total = attendance.filter(a => a.memberId === m.id || a.nama === m.nama).length;
+      // Filter absensi berdasarkan bulan dan tahun pilihan
+      const filteredAttendance = attendance.filter(a => {
+        const isMember = (a.memberId === m.id || a.nama === m.nama);
+        if (!isMember) return false;
+
+        if (!a.tanggal) return false;
+        const [year, month] = a.tanggal.split('-'); // Format YYYY-MM-DD
+
+        const matchMonth = (selectedMonth === 'all') || (parseInt(month, 10) === parseInt(selectedMonth, 10));
+        const matchYear = (selectedYear === 'all') || (year === selectedYear);
+
+        return matchMonth && matchYear;
+      });
+
+      const total = filteredAttendance.length;
+
       tbody.innerHTML += `
         <tr>
           <td style="color:var(--text-muted);">${idx + 1}</td>

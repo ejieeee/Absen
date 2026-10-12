@@ -4,6 +4,10 @@
  */
 
 class SignaturePad {
+ setStrokeColor(color) {
+  this.strokeColor = color;
+  this.ctx.strokeStyle = color;
+}
   constructor(canvasElement, options = {}) {
     this.canvas = canvasElement;
     this.ctx = canvasElement.getContext('2d');
@@ -16,6 +20,7 @@ class SignaturePad {
     this.points = [];
 
     this.init();
+    
   }
 
   init() {

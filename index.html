@@ -234,23 +234,56 @@
           </div>
         </div>
 
-        <div id="subviewRekap" class="secretary-subcontent" style="display: none;">
-          <div class="table-container">
-            <table class="data-table" id="rekapTable">
-              <thead>
-                <tr>
-                  <th style="width: 48px;">No</th>
-                  <th>Nama Anggota</th>
-                  <th>Kelas & Jurusan</th>
-                  <th>Divisi</th>
-                  <th style="text-align: center;">Total Kehadiran</th>
-                  <th>Status Keaktifan</th>
-                </tr>
-              </thead>
-              <tbody id="rekapTableBody"></tbody>
-            </table>
-          </div>
-        </div>
+       <!-- Ganti blok <div id="subviewRekap"> pada index.html dengan kode ini -->
+<div id="subviewRekap" class="secretary-subcontent" style="display: none;">
+  <!-- Filter Bulan & Tahun -->
+  <div class="rekap-filter-bar">
+    <div class="filter-group">
+      <label for="rekapMonthSelect" class="filter-label">Bulan:</label>
+      <select id="rekapMonthSelect" class="form-select filter-select">
+        <option value="all">Semua Bulan</option>
+        <option value="1">Januari</option>
+        <option value="2">Februari</option>
+        <option value="3">Maret</option>
+        <option value="4">April</option>
+        <option value="5">Mei</option>
+        <option value="6">Juni</option>
+        <option value="7">Juli</option>
+        <option value="8">Agustus</option>
+        <option value="9">September</option>
+        <option value="10">Oktober</option>
+        <option value="11">November</option>
+        <option value="12">Desember</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="rekapYearSelect" class="filter-label">Tahun:</label>
+      <select id="rekapYearSelect" class="form-select filter-select">
+        <option value="all">Semua Tahun</option>
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+        <option value="2027">2027</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table" id="rekapTable">
+      <thead>
+        <tr>
+          <th style="width: 48px;">No</th>
+          <th>Nama Anggota</th>
+          <th>Kelas & Jurusan</th>
+          <th>Divisi</th>
+          <th style="text-align: center;">Total Kehadiran</th>
+          <th>Status Keaktifan</th>
+        </tr>
+      </thead>
+      <tbody id="rekapTableBody"></tbody>
+    </table>
+  </div>
+</div>
 
       </div>
 
