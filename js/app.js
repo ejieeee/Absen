@@ -5,6 +5,21 @@
 let dbAnggotaCache = [];
 let dbAbsensiCache = [];
 
+// Fungsi pembantu untuk membersihkan format kelas agar tidak double (misal: "XI - PPLG - X PPLG 1" -> "XI PPLG 1")
+function formatKelasJurusan(kelas, jurusan) {
+  if (!kelas && !jurusan) return '-';
+  let cleanKelas = String(kelas || '').replace(/kelas/gi, '').trim();
+  // Jika kelas sudah mengandung format lengkap dari input sebelumnya, ambil tingkat & jurusannya saja
+  if (cleanKelas.includes('-')) {
+    cleanKelas = cleanKelas.split('-')[0].trim();
+  }
+  let cleanJurusan = String(jurusan || '').trim();
+  if (cleanJurusan.toLowerCase().startsWith('x')) {
+    cleanJurusan = cleanJurusan.replace(/^[x|xi|xii]+\s*/i, '').trim();
+  }
+  return `${cleanKelas} ${cleanJurusan}`.trim();
+}
+
 async function fetchMembersOnline() {
   const client = getSupabaseClient();
   if (!client) return;
@@ -91,8 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvasEl = document.getElementById('signatureCanvas');
   if (canvasEl) {
     state.signaturePad = new SignaturePad(canvasEl, {
-      strokeColor: document.body.classList.contains('dark-mode') ? '#F4F4F5' : '#18181B',
-      lineWidth: 2.2,
+      strokeColor: '#18181B', // Selalu gunakan tinta hitam pekat agar hasil tanda tangan tajam
+      lineWidth: 2.4,
       onStrokeEnd: () => {
         const errorEl = document.getElementById('signatureError');
         if (errorEl) errorEl.style.display = 'none';
@@ -105,11 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.toggle('dark-mode');
       const isDark = document.body.classList.contains('dark-mode');
       localStorage.setItem('pmr_theme', isDark ? 'dark' : 'light');
-
-      // Update warna garis pada canvas secara langsung
-      if (state.signaturePad) {
-        state.signaturePad.setStrokeColor(isDark ? '#F4F4F5' : '#18181B');
-      }
     });
   }
 
@@ -176,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
       item.className = 'autocomplete-item';
       item.innerHTML = `
         <div class="autocomplete-item-name">${member.nama}</div>
-        <div class="autocomplete-item-meta">Kelas ${member.kelas} • ${member.jurusan}</div>
+        <div class="autocomplete-item-meta">${formatKelasJurusan(member.kelas, member.jurusan)}</div>
       `;
       item.addEventListener('click', () => selectMember(member));
       dropdown.appendChild(item);
@@ -192,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dropdown) dropdown.classList.remove('show');
 
     document.getElementById('selectedMemberName').textContent = member.nama;
-    document.getElementById('selectedMemberClass').textContent = `Kelas ${member.kelas} - ${member.jurusan}`;
+    document.getElementById('selectedMemberClass').textContent = formatKelasJurusan(member.kelas, member.jurusan);
     document.getElementById('selectedMemberDivision').textContent = member.divisi;
 
     if (selectedMemberCard) selectedMemberCard.classList.add('visible');
@@ -254,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         attendanceForm.style.display = 'none';
         document.getElementById('successSummaryBox').innerHTML = `
           <div class="summary-row"><span class="summary-label">Nama</span><span class="summary-val">${state.selectedMember.nama}</span></div>
-          <div class="summary-row"><span class="summary-label">Kelas / Jurusan</span><span class="summary-val">Kelas ${state.selectedMember.kelas} - ${state.selectedMember.jurusan}</span></div>
+          <div class="summary-row"><span class="summary-label">Kelas / Jurusan</span><span class="summary-val">${formatKelasJurusan(state.selectedMember.kelas, state.selectedMember.jurusan)}</span></div>
           <div class="summary-row"><span class="summary-label">Divisi</span><span class="summary-val">${state.selectedMember.divisi}</span></div>
         `;
         successCard.classList.add('visible');
@@ -366,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td><div><strong>${item.waktu}</strong></div><div style="font-size:0.75rem; color:var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div></td>
           <td><strong>${item.nama}</strong></td>
-          <td>Kelas ${item.kelas} - ${item.jurusan}</td>
+          <td>${formatKelasJurusan(item.kelas, item.jurusan)}</td>
           <td>${item.divisi}</td>
           <td>${item.tandaTangan ? `<img src="${item.tandaTangan}" alt="TTD" class="table-signature-thumb">` : '-'}</td>
         </tr>`;
@@ -384,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tr.innerHTML = `
         <td style="color:var(--text-muted);">${idx + 1}</td>
         <td><strong>${m.nama}</strong></td>
-        <td>Kelas ${m.kelas} - ${m.jurusan}</td>
+        <td>${formatKelasJurusan(m.kelas, m.jurusan)}</td>
         <td>${m.divisi}</td>
         <td style="text-align: right;">
           <button type="button" class="btn-action-table btn-danger delete-member-btn" data-id="${m.id}" data-name="${m.nama}">Hapus</button>
@@ -393,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.appendChild(tr);
     });
 
-    // Event listener untuk tombol hapus anggota
     tbody.querySelectorAll('.delete-member-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.target.getAttribute('data-id');
@@ -445,13 +454,12 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = '';
 
     members.forEach((m, idx) => {
-      // Filter absensi berdasarkan bulan dan tahun pilihan
       const filteredAttendance = attendance.filter(a => {
         const isMember = (a.memberId === m.id || a.nama === m.nama);
         if (!isMember) return false;
 
         if (!a.tanggal) return false;
-        const [year, month] = a.tanggal.split('-'); // Format YYYY-MM-DD
+        const [year, month] = a.tanggal.split('-');
 
         const matchMonth = (selectedMonth === 'all') || (parseInt(month, 10) === parseInt(selectedMonth, 10));
         const matchYear = (selectedYear === 'all') || (year === selectedYear);
@@ -465,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td style="color:var(--text-muted);">${idx + 1}</td>
           <td><strong>${m.nama}</strong></td>
-          <td>Kelas ${m.kelas} - ${m.jurusan}</td>
+          <td>${formatKelasJurusan(m.kelas, m.jurusan)}</td>
           <td>${m.divisi}</td>
           <td style="text-align:center; font-weight:700; color:var(--pmr-red);">${total}</td>
           <td><span class="status-pill status-aktif">${total > 0 ? 'Aktif' : 'Belum Absen'}</span></td>

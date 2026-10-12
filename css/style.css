@@ -795,6 +795,21 @@ body.dark-mode .btn-danger:hover {
   font-size: 0.86rem;
 }
 
+/* PERBAIKAN TANDA TANGAN (AGAR SELALU JELAS DI SEMUA MODE) */
+.table-signature-thumb {
+  width: 75px;
+  height: 32px;
+  object-fit: contain;
+  background-color: #FFFFFF; /* Selalu putih agar goresan hitam/gelap kontras */
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+body.dark-mode .table-signature-thumb {
+  background-color: #FFFFFF; /* Tetap putih di mode gelap agar tinta hitam terlihat jelas */
+  filter: none; /* Hilangkan invert agar tidak buram/terbalik */
+}
 /* PERBAIKAN TANDA TANGAN DI DARK MODE */
 body.dark-mode .table-signature-thumb {
   background-color: #ffffff; /* Latar putih untuk pratinjau gambar */
