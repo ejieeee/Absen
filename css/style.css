@@ -280,7 +280,7 @@ body {
   box-shadow: var(--shadow-dropdown);
   max-height: 250px;
   overflow-y: auto;
-  z-index: 50;
+  z-index: 999;
   display: none;
 }
 
@@ -594,13 +594,20 @@ body {
   background-color: var(--bg-hover);
 }
 
+/* PERBAIKAN TANDA TANGAN (Latar belakang putih bersih agar tinta hitam selalu terlihat kontras di Light/Dark Mode) */
 .table-signature-thumb {
-  width: 60px;
-  height: 28px;
+  width: 75px;
+  height: 32px;
   object-fit: contain;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-subtle);
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+body.dark-mode .table-signature-thumb {
+  background-color: #FFFFFF;
+  filter: none;
 }
 
 .status-pill {
@@ -706,7 +713,7 @@ body {
 }
 
 /* ==========================================================================
-   DARK MODE PALETTE OVERRIDES (SINTAKS RESMI - BERBASIS BIRU HARMONIS)
+   DARK MODE PALETTE OVERRIDES
    ========================================================================== */
 body.dark-mode {
   --bg-page: #121214;
@@ -717,28 +724,23 @@ body.dark-mode {
   --text-primary: #F4F4F5;
   --text-secondary: #A1A1AA;
   --text-muted: #71717A;
-  --text-inverse: #121214; /* Disesuaikan dengan warna --bg-page agar teks di dalam tombol biru kontras */
+  --text-inverse: #121214;
 
   --border-subtle: #27272A;
   --border-strong: #3F3F46;
-  --border-focus: #60A5FA; /* Menggunakan biru cerah untuk indikator fokus input */
+  --border-focus: #60A5FA;
 
-  /* Mengubah Aksen Utama Menjadi Biru di Mode Gelap */
-  --pmr-red: #3B82F6;         /* Biru utama untuk tombol primary (CTA) */
-  --pmr-red-hover: #2563EB;   /* Biru lebih pekat saat tombol ditekan/hover */
-  --pmr-red-subtle: #1D4ED81A;/* Biru transparan lembut untuk latar belakang badge */
-  --pmr-red-border: #2563EB;  /* Garis tepi komponen biru */
-  --pmr-red-text: #60A5FA;    /* Teks biru terang untuk kontras tinggi */
+  --pmr-red: #3B82F6;
+  --pmr-red-hover: #2563EB;
+  --pmr-red-subtle: #1D4ED81A;
+  --pmr-red-border: #2563EB;
+  --pmr-red-text: #60A5FA;
 
-  /* Status Aktif / Sukses Berbasis Biru Cyan (Segar & Modern) */
   --status-active-bg: #07598533; 
   --status-active-text: #38BDF8;
   --status-active-border: #0284C7;
 }
 
-/* KELAS KOMPONEN TAMBAHAN */
-
-/* Tombol Sekunder (Batal / Kembali) */
 body.dark-mode .btn-secondary {
   background-color: var(--bg-subtle);
   color: var(--text-primary);
@@ -750,16 +752,15 @@ body.dark-mode .btn-secondary:hover {
   border-color: var(--border-muted);
 }
 
-/* Tombol Destruktif (Hapus / Keluar) - Diperbaiki dari Kode Anda */
 body.dark-mode .btn-danger {
-  background-color: #2D1515;   /* Merah gelap pekat agar tidak menusuk mata */
-  color: #FCA5A5;              /* Teks merah muda pastel untuk keterbacaan */
-  border: 1px solid #7F1D1D;   /* Diubah ke merah tua (Bukan Biru #3B82F6) agar konsisten */
+  background-color: #2D1515;
+  color: #FCA5A5;
+  border: 1px solid #7F1D1D;
   transition: background-color 0.15s ease;
 }
 
 body.dark-mode .btn-danger:hover {
-  background-color: #4C1D1D;   /* Merah sedikit lebih terang saat hover */
+  background-color: #4C1D1D;
   color: #FFE4E6;
 }
 
@@ -793,26 +794,4 @@ body.dark-mode .btn-danger:hover {
   min-width: 140px;
   padding: 6px 10px;
   font-size: 0.86rem;
-}
-
-/* PERBAIKAN TANDA TANGAN (AGAR SELALU JELAS DI SEMUA MODE) */
-.table-signature-thumb {
-  width: 75px;
-  height: 32px;
-  object-fit: contain;
-  background-color: #FFFFFF; /* Selalu putih agar goresan hitam/gelap kontras */
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-}
-
-body.dark-mode .table-signature-thumb {
-  background-color: #FFFFFF; /* Tetap putih di mode gelap agar tinta hitam terlihat jelas */
-  filter: none; /* Hilangkan invert agar tidak buram/terbalik */
-}
-/* PERBAIKAN TANDA TANGAN DI DARK MODE */
-body.dark-mode .table-signature-thumb {
-  background-color: #ffffff; /* Latar putih untuk pratinjau gambar */
-  filter: invert(0.9) hue-rotate(180deg); /* Invert warna agar tinta hitam jadi putih & kontras di mode gelap */
-  border-color: var(--border-strong);
 }
