@@ -21,7 +21,10 @@ function formatKelasJurusan(kelas, jurusan) {
 
 async function fetchMembersOnline() {
   const client = getSupabaseClient();
-  if (!client) return;
+  if (!client) {
+    // Fallback data lokal jika client belum siap
+    return;
+  }
 
   try {
     let { data, error } = await client
@@ -79,21 +82,17 @@ async function fetchAttendanceOnline() {
   }
 }
 
-function getStoredMembers() {
-  return dbAnggotaCache;
-}
-
-function getStoredAttendance() {
-  return dbAbsensiCache;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const state = {
     selectedMember: null,
     signaturePad: null,
     isSecretaryLoggedIn: false,
     activeSubView: 'absensi',
   };
+
+  // 1. Ambil data database terlebih dahulu sebelum elemen interaktif berjalan
+  await fetchMembersOnline();
+  await fetchAttendanceOnline();
 
   // Logika Dark Mode
   const darkModeToggleBtn = document.getElementById('darkModeToggleBtn');
@@ -156,8 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const allMembers = getStoredMembers();
-    const filtered = allMembers.filter(m => 
+    const filtered = dbAnggotaCache.filter(m => 
       (m.nama && m.nama.toLowerCase().includes(cleanQuery)) || 
       (m.jurusan && m.jurusan.toLowerCase().includes(cleanQuery))
     );
@@ -371,9 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAbsensiTable() {
     const tbody = document.getElementById('absensiTableBody');
     if (!tbody) return;
-    const list = getStoredAttendance();
-    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data absensi.</td></tr>` : '';
-    list.forEach(item => {
+    tbody.innerHTML = dbAbsensiCache.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data absensi.</td></tr>` : '';
+    dbAbsensiCache.forEach(item => {
       tbody.innerHTML += `
         <tr>
           <td><div><strong>${item.waktu}</strong></div><div style="font-size:0.75rem; color:var(--text-muted);">${formatTanggalPendek(item.tanggal)}</div></td>
@@ -388,10 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAnggotaTable() {
     const tbody = document.getElementById('anggotaTableBody');
     if (!tbody) return;
-    const list = getStoredMembers();
-    tbody.innerHTML = list.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data anggota.</td></tr>` : '';
+    tbody.innerHTML = dbAnggotaCache.length === 0 ? `<tr><td colspan="5" class="empty-table-state">Belum ada data anggota.</td></tr>` : '';
     
-    list.forEach((m, idx) => {
+    dbAnggotaCache.forEach((m, idx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="color:var(--text-muted);">${idx + 1}</td>
@@ -447,16 +443,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('rekapTableBody');
     if (!tbody) return;
 
-    const members = getStoredMembers();
-    const attendance = getStoredAttendance();
-
     const selectedMonth = monthSelect ? monthSelect.value : 'all';
     const selectedYear = yearSelect ? yearSelect.value : 'all';
 
     tbody.innerHTML = '';
 
-    members.forEach((m, idx) => {
-      const filteredAttendance = attendance.filter(a => {
+    dbAnggotaCache.forEach((m, idx) => {
+      const filteredAttendance = dbAbsensiCache.filter(a => {
         const isMember = (a.memberId === m.id || a.nama === m.nama);
         if (!isMember) return false;
 
@@ -526,13 +519,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  async function initApp() {
-    await fetchMembersOnline();
-    await fetchAttendanceOnline();
-    renderAnggotaTable();
-    renderAbsensiTable();
-    renderRekapTable();
-  }
-
-  initApp();
+  // Render awal tabel sekretaris jika sudah siap
+  renderAnggotaTable();
+  renderAbsensiTable();
+  renderRekapTable();
 });
